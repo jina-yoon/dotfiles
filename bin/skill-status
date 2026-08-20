@@ -244,8 +244,13 @@ def find_cowork_root():
     return best[0], best[1]
 
 
-def load_cowork():
-    """Cowork skills I authored, merged with their on-disk SKILL.md."""
+def load_cowork(not_mine=frozenset()):
+    """Cowork skills that are mine, merged with their on-disk SKILL.md.
+
+    creatorType "user" only means some account uploaded it, not that I wrote
+    it — skills imported from elsewhere carry the same tag. The not_mine list
+    in skill-sources.json is the only way to tell those apart.
+    """
     root, manifest = find_cowork_root()
     if root is None:
         return {"available": False, "skills": {}, "total": 0, "synced": None}
@@ -257,7 +262,7 @@ def load_cowork():
         if e.get("creatorType") != "user":
             continue
         name = e.get("name")
-        if not name:
+        if not name or name in not_mine:
             continue
         rec = on_disk.get(name, {})
         mine[name] = {
@@ -273,9 +278,14 @@ def load_cowork():
             "path": rec.get("path"),
         }
     synced = manifest.get("lastUpdated")
+    excluded = sorted(
+        e["name"] for e in entries
+        if e.get("creatorType") == "user" and e.get("name") in not_mine
+    )
     return {
         "available": True,
         "skills": mine,
+        "excluded": excluded,
         "total": len(entries),
         "synced": datetime.fromtimestamp(synced / 1000) if synced else None,
         "root": str(root),
@@ -356,18 +366,24 @@ def classify_authorship(root, skill_path, mine):
     return ("mine" if mine & set(authors) else "others"), authors
 
 
-def load_repos():
-    """Repo-local skills, from the explicit list in skill-sources.json."""
+def load_config():
+    """skill-sources.json, or an empty config if it isn't there."""
     raw = read_text(CONFIG)
     if raw is None:
-        return [], ["no skill-sources.json — repo scan skipped"]
+        return {}
     try:
-        cfg = json.loads(raw)
+        return json.loads(raw)
     except json.JSONDecodeError as exc:
         # Exit 2, not the 1 that a bare SystemExit(str) would give — 1 means
         # "drift found", and a broken config must not masquerade as that.
         print(f"skill-status: {CONFIG} is not valid JSON: {exc}", file=sys.stderr)
         raise SystemExit(2)
+
+
+def load_repos(cfg):
+    """Repo-local skills, from the explicit list in skill-sources.json."""
+    if not cfg:
+        return [], ["no skill-sources.json — repo scan skipped"]
 
     paths, notes = [], []
     for entry in cfg.get("repos", []):
@@ -509,12 +525,15 @@ def main():
 
     s = Style(sys.stdout.isatty() and not os.environ.get("NO_COLOR"))
 
+    cfg = load_config()
+    not_mine = frozenset(cfg.get("not_mine", []))
+
     dotfiles = scan_dir(DOTFILES)
     claude = scan_dir(CLAUDE_SKILLS)
-    cowork = load_cowork()
+    cowork = load_cowork(not_mine)
     bundles = load_bundles()
     scheduled = scan_dir(SCHEDULED)
-    repos, repo_notes = ([], []) if args.no_repos else load_repos()
+    repos, repo_notes = ([], []) if args.no_repos else load_repos(cfg)
 
     # --diff short-circuits the report.
     if args.diff:
@@ -546,6 +565,7 @@ def main():
                 "available": cowork["available"],
                 "total": cowork["total"],
                 "synced": cowork["synced"].isoformat() if cowork["synced"] else None,
+                "excluded_not_mine": cowork.get("excluded", []),
                 "mine": [
                     {k: v for k, v in r.items() if k not in ("text", "norm")}
                     for r in cowork["skills"].values()
@@ -587,13 +607,15 @@ def main():
 
         if cowork["available"]:
             when = cowork["synced"].strftime("%Y-%m-%d %H:%M") if cowork["synced"] else "unknown"
-            head = s.bold("cowork") + s.dim(f"  {cowork['total']} total · {len(cowork['skills'])} yours")
+            head = s.bold("cowork") + s.dim(f"  {cowork['total']} total · {len(cowork['skills'])} mine")
             print(f"{pad(head, 60)}{s.dim('synced ' + when)}")
             flagged = {i["skill"] for i in issues if i["kind"].startswith("cowork") or i["kind"] == "disabled"}
             for name, cw in sorted(cowork["skills"].items()):
                 state = "enabled" if cw["enabled"] else s.warn("disabled")
                 note = s.warn("⚠ see drift") if name in flagged else ""
                 print(f"  {pad(name, 28)}{pad(state, 13)}{note}")
+            for name in cowork.get("excluded", []):
+                print(f"  {pad(name, 28)}{s.dim('not mine — excluded via skill-sources.json')}")
             print()
         else:
             print(s.dim("cowork  not readable on this machine\n"))

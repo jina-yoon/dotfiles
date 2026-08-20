@@ -150,6 +150,12 @@ checkouts are teammates', so only mine are shown by default (`--all` for the
 rest). Emails that count as mine are seeded from git config; add more under an
 `authors` key in the config.
 
+Cowork has no equivalent signal. Its `creatorType: "user"` only means *some
+account* uploaded the skill, not that I wrote it — anything imported from
+elsewhere carries the same tag. List those by name under `not_mine` in the
+config and they stop counting as mine; they're still shown, marked as excluded,
+so the filtering is never silent.
+
 For *installed* plugins rather than authored skills, the built-ins already
 cover it: `claude plugin list --json`, `claude plugin details <name>` (skills
 plus token cost), and `claude plugin validate <dir> --strict`.

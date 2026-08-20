@@ -8,5 +8,10 @@
     "~/context-mill/.claude/skills",
     "~/HogTTV-hoggit/.claude/skills",
     "~/hackathon-agentgit/skills"
+  ],
+  "_comment_not_mine": "Cowork tags a skill creatorType 'user' when any account uploaded it, not when I wrote it. Skills I imported from elsewhere go here so they stop counting as mine.",
+  "not_mine": [
+    "pr-security-review",
+    "triage-vuln"
   ]
 }
