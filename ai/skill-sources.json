@@ -1,0 +1,12 @@
+{
+  "_comment": "Repos whose .claude/skills are mine to track. skill-status reads this; a path that no longer exists is skipped with a note.",
+  "repos": [
+    "~/posthog.com/.claude/skills",
+    "~/code/.claude/skills",
+    "~/wizard/.claude/skills",
+    "~/HogTTV/.claude/skills",
+    "~/context-mill/.claude/skills",
+    "~/HogTTV-hoggit/.claude/skills",
+    "~/hackathon-agentgit/skills"
+  ]
+}

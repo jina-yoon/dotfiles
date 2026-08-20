@@ -121,6 +121,36 @@ isn't in this repo (it holds machine-local settings too), so the entry is
 merged in rather than overwritten — re-running is safe, and existing hooks are
 left alone.
 
+## Seeing every skill I've written
+
+Skills I author end up spread across dotfiles, `~/.claude/skills`, Cowork,
+`~/Documents/Claude/Scheduled`, and a handful of repos. `skill-status` reads all
+of them and reports where two copies have diverged:
+
+```sh
+skill-status                 # full report
+skill-status --drift-only    # just the problems
+skill-status --diff <name>   # full diff of one skill against its Cowork copy
+skill-status --json          # machine-readable
+skill-status --no-repos      # skip the repo scan
+```
+
+Exit code is `0` clean, `1` drift found, `2` tool error — so it works as a check.
+
+It's read-only; it never pushes to a surface. Drift it catches: a Cowork copy
+that's behind dotfiles, a Cowork skill with no dotfiles backup, a stale or
+missing `.skill` bundle, a dangling symlink in `~/.claude/skills`, and a
+frontmatter `name:` that doesn't match its folder (which Cowork rejects on
+upload).
+
+Which repos get scanned is an explicit list in `ai/skill-sources.json` — most
+`SKILL.md` files on this machine are vendored catalogs or duplicate worktrees,
+so auto-discovery would be mostly noise. Add a repo by adding its path.
+
+For *installed* plugins rather than authored skills, the built-ins already
+cover it: `claude plugin list --json`, `claude plugin details <name>` (skills
+plus token cost), and `claude plugin validate <dir> --strict`.
+
 ## Local overrides
 
 Machine-specific things that shouldn't be committed:

@@ -1,0 +1,563 @@
+#!/usr/bin/env python3
+"""Inventory the Claude skills I author, and report where copies have drifted.
+
+Read-only. Never writes to any surface — it tells you what's out of sync and
+leaves the fixing to you.
+
+Skills I write end up in several places at once: dotfiles is the source, Claude
+Code symlinks it, Cowork keeps its own server-side copy that has to be uploaded
+by hand, and some live only in a repo. Copies diverge silently. This reports
+them side by side and exits non-zero when two disagree.
+
+  skill-status                 full report
+  skill-status --drift-only    just the problems
+  skill-status --diff <name>   full diff of one skill against Cowork
+  skill-status --json          machine-readable
+  skill-status --no-repos      skip the repo scan
+
+Exit: 0 clean, 1 drift found, 2 tool error.
+"""
+
+import argparse
+import difflib
+import json
+import os
+import re
+import sys
+import zipfile
+from datetime import datetime
+from pathlib import Path
+
+HOME = Path.home()
+DOTFILES = HOME / ".dotfiles" / "ai" / "skills"
+CLAUDE_SKILLS = HOME / ".claude" / "skills"
+SCHEDULED = HOME / "Documents" / "Claude" / "Scheduled"
+BUNDLES = HOME / "Desktop" / "cowork-skills"
+CONFIG = HOME / ".dotfiles" / "ai" / "skill-sources.json"
+COWORK_ROOT = (
+    HOME / "Library" / "Application Support" / "Claude"
+    / "local-agent-mode-sessions" / "skills-plugin"
+)
+
+DIFF_PREVIEW_LINES = 14
+
+
+# ---------------------------------------------------------------- formatting
+
+class Style:
+    def __init__(self, enabled):
+        self.on = enabled
+
+    def _w(self, code, s):
+        return f"\033[{code}m{s}\033[0m" if self.on else s
+
+    def bold(self, s):
+        return self._w("1", s)
+
+    def dim(self, s):
+        return self._w("2", s)
+
+    def warn(self, s):
+        return self._w("33", s)
+
+    def err(self, s):
+        return self._w("31", s)
+
+    def ok(self, s):
+        return self._w("32", s)
+
+
+def visible_len(s):
+    return len(re.sub(r"\033\[[0-9;]*m", "", s))
+
+
+def pad(s, width):
+    return s + " " * max(0, width - visible_len(s))
+
+
+# ------------------------------------------------------------------ parsing
+
+def read_text(path):
+    """Read a file, returning None rather than raising on the usual failures."""
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except (OSError, PermissionError):
+        return None
+
+
+def parse_frontmatter(text):
+    """Pull name, description and metadata.cowork out of YAML frontmatter.
+
+    Hand-rolled because PyYAML isn't installed and these three fields are all
+    we need. Handles the block scalars (`>-`, `>`, `|`) the descriptions use.
+    """
+    out = {"name": None, "description": None, "cowork": False}
+    if not text or not text.startswith("---"):
+        return out
+
+    lines = text.split("\n")
+    end = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.rstrip() == "---":
+            end = i
+            break
+    if end is None:
+        return out
+
+    fm = lines[1:end]
+    in_metadata = False
+    key = None
+    buf = []
+
+    def flush():
+        if key in ("name", "description") and buf:
+            out[key] = " ".join(p.strip() for p in buf if p.strip())
+
+    for line in fm:
+        # A non-indented, non-comment line starts a new top-level key.
+        if line and not line[0].isspace() and not line.lstrip().startswith("#"):
+            flush()
+            key, buf = None, []
+            in_metadata = False
+            m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
+            if not m:
+                continue
+            k, v = m.group(1), m.group(2).strip()
+            if k == "metadata":
+                in_metadata = True
+            elif k in ("name", "description"):
+                key = k
+                # `>-`, `>`, `|` mean the value continues on following lines.
+                buf = [] if v in (">", ">-", "|", "|-", "") else [v]
+        elif in_metadata:
+            if re.match(r"^\s+cowork:\s*true\s*$", line):
+                out["cowork"] = True
+        elif key:
+            buf.append(line)
+
+    flush()
+    return out
+
+
+def normalize(text):
+    """Canonical form for content comparison.
+
+    Trailing whitespace and blank-line runs differ between an editor and a
+    round-trip through Cowork's store without the skill actually changing.
+    Everything else — frontmatter included — is significant: a changed
+    description changes when the skill fires.
+    """
+    if text is None:
+        return None
+    lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").split("\n")]
+    out, blank = [], False
+    for ln in lines:
+        if ln == "":
+            if not blank:
+                out.append("")
+            blank = True
+        else:
+            out.append(ln)
+            blank = False
+    while out and out[-1] == "":
+        out.pop()
+    return "\n".join(out)
+
+
+# ------------------------------------------------------------------ surfaces
+
+def load_skill_dir(path):
+    """Read one <name>/SKILL.md directory into a record."""
+    md = path / "SKILL.md"
+    text = read_text(md)
+    if text is None:
+        return None
+    fm = parse_frontmatter(text)
+    return {
+        "name": path.name,
+        "path": str(path),
+        "declared_name": fm["name"],
+        "description": fm["description"],
+        "cowork": fm["cowork"],
+        "text": text,
+        "norm": normalize(text),
+        "lines": len(text.split("\n")),
+    }
+
+
+def scan_dir(root):
+    """Every <name>/SKILL.md one level under root. Follows symlinks."""
+    found = {}
+    if not root.is_dir():
+        return found
+    try:
+        entries = sorted(root.iterdir())
+    except (OSError, PermissionError):
+        return found
+    for entry in entries:
+        # resolve() so symlinked skills (dotfiles -> ~/.claude/skills) count.
+        try:
+            if not entry.resolve().is_dir():
+                continue
+        except OSError:  # dangling symlink
+            continue
+        rec = load_skill_dir(entry)
+        if rec:
+            rec["symlink"] = entry.is_symlink()
+            found[entry.name] = rec
+    return found
+
+
+def find_cowork_root():
+    """The Cowork account dir with the newest manifest.
+
+    Two account UUIDs exist on this machine; hardcoding either would silently
+    read a stale account, so pick by manifest lastUpdated.
+    """
+    best, best_ts = None, -1
+    if not COWORK_ROOT.is_dir():
+        return None, None
+    try:
+        outer_dirs = list(COWORK_ROOT.iterdir())
+    except (OSError, PermissionError):
+        return None, None
+    for outer in outer_dirs:
+        try:
+            inner_dirs = list(outer.iterdir())
+        except (OSError, PermissionError):
+            continue
+        for inner in inner_dirs:
+            mf = inner / "manifest.json"
+            raw = read_text(mf)
+            if raw is None:
+                continue
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            ts = data.get("lastUpdated") or 0
+            if ts > best_ts:
+                best, best_ts = (inner, data), ts
+    if best is None:
+        return None, None
+    return best[0], best[1]
+
+
+def load_cowork():
+    """Cowork skills I authored, merged with their on-disk SKILL.md."""
+    root, manifest = find_cowork_root()
+    if root is None:
+        return {"available": False, "skills": {}, "total": 0, "synced": None}
+
+    entries = manifest.get("skills") or []
+    on_disk = scan_dir(root / "skills")
+    mine = {}
+    for e in entries:
+        if e.get("creatorType") != "user":
+            continue
+        name = e.get("name")
+        if not name:
+            continue
+        rec = on_disk.get(name, {})
+        mine[name] = {
+            "name": name,
+            "skill_id": e.get("skillId"),
+            "enabled": e.get("enabled", True),
+            # Freshly created skills carry a null updatedAt.
+            "updated_at": e.get("updatedAt"),
+            "description": e.get("description"),
+            "norm": rec.get("norm"),
+            "text": rec.get("text"),
+            "lines": rec.get("lines"),
+            "path": rec.get("path"),
+        }
+    synced = manifest.get("lastUpdated")
+    return {
+        "available": True,
+        "skills": mine,
+        "total": len(entries),
+        "synced": datetime.fromtimestamp(synced / 1000) if synced else None,
+        "root": str(root),
+    }
+
+
+def load_bundles():
+    """Staged .skill zips, with the mtime of the SKILL.md inside each."""
+    out = {}
+    if not BUNDLES.is_dir():
+        return out
+    for f in sorted(BUNDLES.glob("*.skill")):
+        rec = {"name": f.stem, "path": str(f), "mtime": f.stat().st_mtime, "norm": None}
+        try:
+            with zipfile.ZipFile(f) as z:
+                for member in z.namelist():
+                    if member.endswith("/SKILL.md"):
+                        rec["norm"] = normalize(z.read(member).decode("utf-8", "replace"))
+                        break
+        except (zipfile.BadZipFile, OSError):
+            rec["corrupt"] = True
+        out[f.stem] = rec
+    return out
+
+
+def load_repos():
+    """Repo-local skills, from the explicit list in skill-sources.json."""
+    raw = read_text(CONFIG)
+    if raw is None:
+        return [], ["no skill-sources.json — repo scan skipped"]
+    try:
+        cfg = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        # Exit 2, not the 1 that a bare SystemExit(str) would give — 1 means
+        # "drift found", and a broken config must not masquerade as that.
+        print(f"skill-status: {CONFIG} is not valid JSON: {exc}", file=sys.stderr)
+        raise SystemExit(2)
+
+    groups, notes = [], []
+    for entry in cfg.get("repos", []):
+        path = Path(os.path.expanduser(entry))
+        if not path.is_dir():
+            notes.append(f"missing, skipped: {entry}")
+            continue
+        skills = scan_dir(path)
+        if skills:
+            # Label by repo. Skills sit at either <repo>/.claude/skills or
+            # <repo>/skills, so step over a .claude/.agents parent but not a
+            # bare one — otherwise <repo>/skills gets labelled with $HOME.
+            label = (path.parent.parent.name
+                     if path.parent.name in (".claude", ".agents")
+                     else path.parent.name)
+            groups.append({"label": label, "path": str(path), "skills": skills})
+    return groups, notes
+
+
+# -------------------------------------------------------------------- drift
+
+def find_drift(dotfiles, claude, cowork, bundles):
+    issues = []
+
+    for name, rec in sorted(dotfiles.items()):
+        cw = cowork["skills"].get(name)
+        if rec["cowork"] and cowork["available"] and not cw:
+            issues.append({
+                "skill": name, "kind": "not-uploaded",
+                "detail": "marked for Cowork but not present there",
+                "fix": f"skill-package {name}, then upload it in Cowork",
+            })
+        elif cw and cw["norm"] is not None and cw["norm"] != rec["norm"]:
+            delta = (rec["lines"] or 0) - (cw["lines"] or 0)
+            shape = (f"dotfiles is {delta} lines longer" if delta > 0
+                     else f"Cowork copy is {-delta} lines longer" if delta < 0
+                     else "same length, different content")
+            issues.append({
+                "skill": name, "kind": "cowork-stale",
+                "detail": f"dotfiles ≠ Cowork ({shape})",
+                "fix": f"skill-package {name}, then re-upload it in Cowork",
+                "diff": (cw["norm"], rec["norm"], "cowork", "dotfiles"),
+            })
+
+        if rec["declared_name"] and rec["declared_name"] != name:
+            issues.append({
+                "skill": name, "kind": "name-mismatch",
+                "detail": f"frontmatter name is '{rec['declared_name']}' — Cowork rejects this",
+                "fix": f"set `name: {name}` in {rec['path']}/SKILL.md",
+            })
+
+        b = bundles.get(name)
+        if rec["cowork"]:
+            if b is None:
+                issues.append({
+                    "skill": name, "kind": "no-bundle",
+                    "detail": "no staged .skill bundle",
+                    "fix": f"skill-package {name}",
+                })
+            elif b.get("corrupt"):
+                issues.append({
+                    "skill": name, "kind": "bundle-corrupt",
+                    "detail": "staged bundle is not a readable zip",
+                    "fix": f"skill-package {name}",
+                })
+            elif b["norm"] is not None and b["norm"] != rec["norm"]:
+                issues.append({
+                    "skill": name, "kind": "bundle-stale",
+                    "detail": "staged bundle is older than the source — the repackage hook may not be running",
+                    "fix": f"skill-package {name}",
+                })
+
+    if cowork["available"]:
+        for name, cw in sorted(cowork["skills"].items()):
+            if name not in dotfiles:
+                issues.append({
+                    "skill": name, "kind": "cowork-only",
+                    "detail": "lives only in Cowork — no dotfiles copy, not backed up",
+                    "fix": "copy it into ~/.dotfiles/ai/skills/ if you want it version-controlled",
+                })
+            if not cw["enabled"]:
+                issues.append({
+                    "skill": name, "kind": "disabled",
+                    "detail": "disabled in Cowork",
+                    "fix": "re-enable it in Cowork, or delete it",
+                })
+
+    if CLAUDE_SKILLS.is_dir():
+        for entry in sorted(CLAUDE_SKILLS.iterdir()):
+            if entry.is_symlink() and not entry.exists():
+                issues.append({
+                    "skill": entry.name, "kind": "broken-symlink",
+                    "detail": f"dangling symlink -> {os.readlink(entry)}",
+                    "fix": f"rm {entry}, then re-run ~/.dotfiles/ai/install.sh",
+                })
+
+    return issues
+
+
+def render_diff(a, b, a_label, b_label, limit=None):
+    lines = list(difflib.unified_diff(
+        a.split("\n"), b.split("\n"),
+        fromfile=a_label, tofile=b_label, lineterm="", n=0,
+    ))
+    if limit is not None and len(lines) > limit:
+        return lines[:limit] + [f"... {len(lines) - limit} more diff lines (--diff to see all)"]
+    return lines
+
+
+# ------------------------------------------------------------------- report
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="skill-status",
+        description="Inventory the Claude skills you author and report drift between copies.",
+    )
+    ap.add_argument("--drift-only", action="store_true", help="only show problems")
+    ap.add_argument("--json", action="store_true", dest="as_json", help="machine-readable output")
+    ap.add_argument("--diff", metavar="NAME", help="full diff of one skill against its Cowork copy")
+    ap.add_argument("--no-repos", action="store_true", help="skip the repo scan")
+    args = ap.parse_args()
+
+    s = Style(sys.stdout.isatty() and not os.environ.get("NO_COLOR"))
+
+    dotfiles = scan_dir(DOTFILES)
+    claude = scan_dir(CLAUDE_SKILLS)
+    cowork = load_cowork()
+    bundles = load_bundles()
+    scheduled = scan_dir(SCHEDULED)
+    repos, repo_notes = ([], []) if args.no_repos else load_repos()
+
+    # --diff short-circuits the report.
+    if args.diff:
+        name = args.diff
+        src = dotfiles.get(name)
+        cw = cowork["skills"].get(name)
+        if not src:
+            print(f"no dotfiles skill named '{name}'", file=sys.stderr)
+            return 2
+        if not cw or cw["norm"] is None:
+            print(f"no Cowork copy of '{name}' to compare against", file=sys.stderr)
+            return 2
+        out = render_diff(cw["norm"], src["norm"], f"cowork/{name}", f"dotfiles/{name}")
+        if not out:
+            print(s.ok(f"{name}: identical"))
+            return 0
+        print("\n".join(out))
+        return 1
+
+    issues = find_drift(dotfiles, claude, cowork, bundles)
+
+    if args.as_json:
+        print(json.dumps({
+            "dotfiles": [
+                {k: v for k, v in r.items() if k not in ("text", "norm")}
+                for r in dotfiles.values()
+            ],
+            "cowork": {
+                "available": cowork["available"],
+                "total": cowork["total"],
+                "synced": cowork["synced"].isoformat() if cowork["synced"] else None,
+                "mine": [
+                    {k: v for k, v in r.items() if k not in ("text", "norm")}
+                    for r in cowork["skills"].values()
+                ],
+            },
+            "scheduled": sorted(scheduled),
+            "repos": [{"label": g["label"], "path": g["path"], "skills": sorted(g["skills"])}
+                      for g in repos],
+            "bundles": sorted(bundles),
+            "issues": [{k: v for k, v in i.items() if k != "diff"} for i in issues],
+        }, indent=2))
+        return 1 if issues else 0
+
+    authored = len(set(dotfiles) | set(cowork["skills"]) | set(scheduled))
+    for g in repos:
+        authored += len(g["skills"])
+
+    if not args.drift_only:
+        head = s.bold("SKILLS YOU AUTHOR")
+        tail = f"{authored} skills"
+        tail += s.err(f" · {len(issues)} issues") if issues else s.ok(" · no drift")
+        print(f"\n{pad(head, 52)}{tail}\n")
+
+        if dotfiles:
+            print(s.bold("dotfiles") + s.dim("  ~/.dotfiles/ai/skills"))
+            for name, rec in sorted(dotfiles.items()):
+                where = []
+                if name in claude:
+                    where.append("claude-code")
+                if name in cowork["skills"]:
+                    where.append("cowork")
+                mark = "cowork:yes" if rec["cowork"] else s.dim("cowork:no")
+                print(f"  {pad(name, 28)}{pad(mark, 13)}{s.dim('→ ' + ', '.join(where) if where else '→ nowhere else')}")
+            print()
+
+        if cowork["available"]:
+            when = cowork["synced"].strftime("%Y-%m-%d %H:%M") if cowork["synced"] else "unknown"
+            head = s.bold("cowork") + s.dim(f"  {cowork['total']} total · {len(cowork['skills'])} yours")
+            print(f"{pad(head, 60)}{s.dim('synced ' + when)}")
+            flagged = {i["skill"] for i in issues if i["kind"].startswith("cowork") or i["kind"] == "disabled"}
+            for name, cw in sorted(cowork["skills"].items()):
+                state = "enabled" if cw["enabled"] else s.warn("disabled")
+                note = s.warn("⚠ see drift") if name in flagged else ""
+                print(f"  {pad(name, 28)}{pad(state, 13)}{note}")
+            print()
+        else:
+            print(s.dim("cowork  not readable on this machine\n"))
+
+        if scheduled:
+            print(s.bold("scheduled") + s.dim(f"  ~/Documents/Claude/Scheduled · {len(scheduled)}"))
+            print(s.dim("  " + ", ".join(sorted(scheduled))))
+            print()
+
+        if repos:
+            print(s.bold("repos"))
+            width = max(len(g["label"]) for g in repos) + 2
+            for g in repos:
+                names = sorted(g["skills"])
+                shown = ", ".join(names[:4]) + (f", +{len(names) - 4} more" if len(names) > 4 else "")
+                print(f"  {pad(g['label'], width)}{s.dim(shown)}  {len(names)}")
+            print()
+        for note in repo_notes:
+            print(s.dim(f"  {note}"))
+        if repo_notes:
+            print()
+
+    if issues:
+        print(s.bold(s.err("DRIFT")))
+        for i in issues:
+            print(f"  {s.bold(i['skill'])}  {s.warn(i['detail'])}")
+            if i.get("diff"):
+                a, b, al, bl = i["diff"]
+                for line in render_diff(a, b, al, bl, limit=DIFF_PREVIEW_LINES):
+                    print(s.dim(f"    {line}"))
+            print(s.dim(f"    → {i['fix']}"))
+        print()
+        return 1
+
+    if args.drift_only:
+        print(s.ok("no drift"))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
