@@ -23,6 +23,7 @@ import difflib
 import json
 import os
 import re
+import subprocess
 import sys
 import zipfile
 from datetime import datetime
@@ -300,6 +301,61 @@ def load_bundles():
     return out
 
 
+def git(repo, *args, timeout=5):
+    """Run a git command in repo, returning stdout or None."""
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True, text=True, timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return res.stdout if res.returncode == 0 else None
+
+
+def my_emails(repos):
+    """Emails that count as me: global git config, plus each repo's config.
+
+    Seeded rather than hardcoded so a second address (a GitHub noreply, a
+    personal account) starts counting the moment it's configured anywhere.
+    """
+    found = set()
+    out = git(Path.home(), "config", "--global", "user.email")
+    if out and out.strip():
+        found.add(out.strip().lower())
+    for repo in repos:
+        out = git(repo, "config", "user.email")
+        if out and out.strip():
+            found.add(out.strip().lower())
+    return found
+
+
+def repo_root(path):
+    out = git(path, "rev-parse", "--show-toplevel")
+    return Path(out.strip()) if out and out.strip() else None
+
+
+def classify_authorship(root, skill_path, mine):
+    """Who wrote this skill: 'mine', 'others', 'uncommitted', or 'unknown'.
+
+    Path membership is a poor proxy for authorship — most skills in these
+    checkouts are teammates'. git log is the real signal and it self-maintains.
+    """
+    if root is None:
+        return "unknown", []
+    rel = os.path.relpath(skill_path, root)
+    out = git(root, "log", "--format=%ae", "--max-count=50", "--", rel)
+    if out is None:
+        return "unknown", []
+    authors = sorted({a.strip().lower() for a in out.split("\n") if a.strip()})
+    if not authors:
+        # No history: either never committed (probably mine, and unbacked) or
+        # vendored in via a squashed import (not mine).
+        tracked = git(root, "ls-files", "--error-unmatch", rel)
+        return ("others", []) if tracked else ("uncommitted", [])
+    return ("mine" if mine & set(authors) else "others"), authors
+
+
 def load_repos():
     """Repo-local skills, from the explicit list in skill-sources.json."""
     raw = read_text(CONFIG)
@@ -313,21 +369,36 @@ def load_repos():
         print(f"skill-status: {CONFIG} is not valid JSON: {exc}", file=sys.stderr)
         raise SystemExit(2)
 
-    groups, notes = [], []
+    paths, notes = [], []
     for entry in cfg.get("repos", []):
         path = Path(os.path.expanduser(entry))
-        if not path.is_dir():
+        if path.is_dir():
+            paths.append(path)
+        else:
             notes.append(f"missing, skipped: {entry}")
-            continue
+
+    roots = {p: repo_root(p) for p in paths}
+    mine = my_emails([r for r in roots.values() if r])
+    for extra in cfg.get("authors", []):
+        mine.add(extra.strip().lower())
+
+    groups = []
+    for path in paths:
         skills = scan_dir(path)
-        if skills:
-            # Label by repo. Skills sit at either <repo>/.claude/skills or
-            # <repo>/skills, so step over a .claude/.agents parent but not a
-            # bare one — otherwise <repo>/skills gets labelled with $HOME.
-            label = (path.parent.parent.name
-                     if path.parent.name in (".claude", ".agents")
-                     else path.parent.name)
-            groups.append({"label": label, "path": str(path), "skills": skills})
+        if not skills:
+            continue
+        root = roots.get(path)
+        for name, rec in skills.items():
+            rec["authorship"], rec["authors"] = classify_authorship(
+                root, rec["path"], mine
+            )
+        # Label by repo. Skills sit at either <repo>/.claude/skills or
+        # <repo>/skills, so step over a .claude/.agents parent but not a
+        # bare one — otherwise <repo>/skills gets labelled with $HOME.
+        label = (path.parent.parent.name
+                 if path.parent.name in (".claude", ".agents")
+                 else path.parent.name)
+        groups.append({"label": label, "path": str(path), "skills": skills})
     return groups, notes
 
 
@@ -432,6 +503,8 @@ def main():
     ap.add_argument("--json", action="store_true", dest="as_json", help="machine-readable output")
     ap.add_argument("--diff", metavar="NAME", help="full diff of one skill against its Cowork copy")
     ap.add_argument("--no-repos", action="store_true", help="skip the repo scan")
+    ap.add_argument("--all", action="store_true", dest="show_all",
+                    help="include repo skills written by other people")
     args = ap.parse_args()
 
     s = Style(sys.stdout.isatty() and not os.environ.get("NO_COLOR"))
@@ -479,7 +552,10 @@ def main():
                 ],
             },
             "scheduled": sorted(scheduled),
-            "repos": [{"label": g["label"], "path": g["path"], "skills": sorted(g["skills"])}
+            "repos": [{"label": g["label"], "path": g["path"],
+                       "skills": [{"name": n, "authorship": r.get("authorship"),
+                                   "authors": r.get("authors", [])}
+                                  for n, r in sorted(g["skills"].items())]}
                       for g in repos],
             "bundles": sorted(bundles),
             "issues": [{k: v for k, v in i.items() if k != "diff"} for i in issues],
@@ -488,7 +564,8 @@ def main():
 
     authored = len(set(dotfiles) | set(cowork["skills"]) | set(scheduled))
     for g in repos:
-        authored += len(g["skills"])
+        authored += sum(1 for r in g["skills"].values()
+                        if r.get("authorship") in ("mine", "uncommitted"))
 
     if not args.drift_only:
         head = s.bold("SKILLS YOU AUTHOR")
@@ -527,12 +604,28 @@ def main():
             print()
 
         if repos:
-            print(s.bold("repos"))
+            total = sum(len(g["skills"]) for g in repos)
+            n_mine = sum(1 for g in repos for r in g["skills"].values()
+                         if r.get("authorship") in ("mine", "uncommitted"))
+            print(s.bold("repos") + s.dim(f"  {n_mine} yours of {total} found"))
             width = max(len(g["label"]) for g in repos) + 2
             for g in repos:
-                names = sorted(g["skills"])
-                shown = ", ".join(names[:4]) + (f", +{len(names) - 4} more" if len(names) > 4 else "")
-                print(f"  {pad(g['label'], width)}{s.dim(shown)}  {len(names)}")
+                keep = "mine", "uncommitted"
+                rows = sorted(n for n, r in g["skills"].items()
+                              if args.show_all or r.get("authorship") in keep)
+                others = sum(1 for r in g["skills"].values()
+                             if r.get("authorship") not in keep)
+                tail = (s.dim(f"({others} by others)")
+                        if others and not args.show_all else "")
+                if rows:
+                    shown = ", ".join(rows[:4])
+                    if len(rows) > 4:
+                        shown += f", +{len(rows) - 4} more"
+                    print(f"  {pad(g['label'], width)}{s.dim(shown)}  {len(rows)}  {tail}")
+                elif tail:
+                    # No skills of mine here — still name the repo, or the
+                    # count line reads as belonging to the repo above it.
+                    print(f"  {pad(g['label'], width)}{tail}")
             print()
         for note in repo_notes:
             print(s.dim(f"  {note}"))

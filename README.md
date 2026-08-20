@@ -132,6 +132,7 @@ skill-status                 # full report
 skill-status --drift-only    # just the problems
 skill-status --diff <name>   # full diff of one skill against its Cowork copy
 skill-status --json          # machine-readable
+skill-status --all           # include repo skills written by other people
 skill-status --no-repos      # skip the repo scan
 ```
 
@@ -143,9 +144,11 @@ missing `.skill` bundle, a dangling symlink in `~/.claude/skills`, and a
 frontmatter `name:` that doesn't match its folder (which Cowork rejects on
 upload).
 
-Which repos get scanned is an explicit list in `ai/skill-sources.json` — most
-`SKILL.md` files on this machine are vendored catalogs or duplicate worktrees,
-so auto-discovery would be mostly noise. Add a repo by adding its path.
+Which repos get scanned is an explicit list in `ai/skill-sources.json`. Within
+them, authorship comes from `git log` rather than path — most skills in these
+checkouts are teammates', so only mine are shown by default (`--all` for the
+rest). Emails that count as mine are seeded from git config; add more under an
+`authors` key in the config.
 
 For *installed* plugins rather than authored skills, the built-ins already
 cover it: `claude plugin list --json`, `claude plugin details <name>` (skills
