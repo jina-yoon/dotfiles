@@ -6,20 +6,24 @@ script — the [holman](https://github.com/holman/dotfiles) /
 
 ## Install
 
-On a fresh Mac:
+This repo is **private**, so a fresh Mac needs `gh` authenticated first
+(`brew install gh && gh auth login`). Then:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/jina-yoon/dotfiles/main/install.sh | bash
+gh repo clone jina-yoon/dotfiles ~/.dotfiles && ~/.dotfiles/install.sh
 ```
 
-Or manually:
+Or step by step:
 
 ```sh
-git clone https://github.com/jina-yoon/dotfiles.git ~/.dotfiles
+gh repo clone jina-yoon/dotfiles ~/.dotfiles
 cd ~/.dotfiles
 script/bootstrap
 script/install
 ```
+
+(If you ever make the repo public, the usual one-liner works:
+`curl -fsSL https://raw.githubusercontent.com/jina-yoon/dotfiles/main/install.sh | bash`)
 
 ## How it works
 

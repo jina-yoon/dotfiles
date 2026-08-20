@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 #
-# One-liner installer for a fresh Mac:
-#   curl -fsSL https://raw.githubusercontent.com/jina-yoon/dotfiles/main/install.sh | bash
+# Installer for a fresh Mac. The repo is private, so cloning needs an
+# authenticated `gh` (or git credentials for github.com):
+#
+#   gh repo clone jina-yoon/dotfiles ~/.dotfiles && ~/.dotfiles/install.sh
 
 set -e
 
 DOTFILES_ROOT="$HOME/.dotfiles"
-REPO="https://github.com/jina-yoon/dotfiles.git"
+REPO="jina-yoon/dotfiles"
 
 if [ ! -d "$DOTFILES_ROOT" ]; then
   echo "› cloning dotfiles to $DOTFILES_ROOT"
-  git clone "$REPO" "$DOTFILES_ROOT"
+  if command -v gh >/dev/null 2>&1; then
+    gh repo clone "$REPO" "$DOTFILES_ROOT"
+  else
+    git clone "https://github.com/$REPO.git" "$DOTFILES_ROOT"
+  fi
 else
   echo "› $DOTFILES_ROOT already exists, pulling"
   git -C "$DOTFILES_ROOT" pull --ff-only
