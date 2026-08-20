@@ -138,11 +138,17 @@ skill-status --no-repos      # skip the repo scan
 
 Exit code is `0` clean, `1` drift found, `2` tool error — so it works as a check.
 
-It's read-only; it never pushes to a surface. Drift it catches: a Cowork copy
-that's behind dotfiles, a Cowork skill with no dotfiles backup, a stale or
-missing `.skill` bundle, a dangling symlink in `~/.claude/skills`, and a
-frontmatter `name:` that doesn't match its folder (which Cowork rejects on
-upload).
+It's read-only; it never pushes to a surface. Drift it catches: dotfiles and
+Cowork disagreeing, a Cowork skill with no dotfiles backup, an exported skill
+sitting uncommitted, a stale or missing `.skill` bundle, a dangling symlink in
+`~/.claude/skills`, and a frontmatter `name:` that doesn't match its folder
+(which Cowork rejects on upload).
+
+Edits flow both ways — Cowork exports down into `ai/skills/`, and edits made
+here are packaged and uploaded up — so when the two disagree the tool compares
+Cowork's `updatedAt` against the local mtime and names the stale side rather
+than assuming one. If the two timestamps are within two minutes, or Cowork
+reports none, it says so and leaves the call to me.
 
 Which repos get scanned is an explicit list in `ai/skill-sources.json`. Within
 them, authorship comes from `git log` rather than path — most skills in these

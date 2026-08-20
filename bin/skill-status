@@ -41,6 +41,8 @@ COWORK_ROOT = (
 )
 
 DIFF_PREVIEW_LINES = 14
+# Cowork's server timestamp and a local mtime aren't the same clock.
+CLOCK_SKEW = 120  # seconds
 
 
 # ---------------------------------------------------------------- formatting
@@ -167,6 +169,31 @@ def normalize(text):
 
 # ------------------------------------------------------------------ surfaces
 
+def parse_iso(value):
+    """Cowork's updatedAt -> epoch seconds. None for a freshly created skill."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except (ValueError, AttributeError):
+        return None
+
+
+def git_state(path):
+    """'committed', 'uncommitted', or None if not in a repo.
+
+    An exported skill sitting uncommitted in the working tree is still
+    unbacked — the export writes files but doesn't commit them.
+    """
+    root = repo_root(Path(path).parent)
+    if root is None:
+        return None
+    out = git(root, "status", "--porcelain", "--", str(path))
+    if out is None:
+        return None
+    return "uncommitted" if out.strip() else "committed"
+
+
 def load_skill_dir(path):
     """Read one <name>/SKILL.md directory into a record."""
     md = path / "SKILL.md"
@@ -174,9 +201,17 @@ def load_skill_dir(path):
     if text is None:
         return None
     fm = parse_frontmatter(text)
+    mtime = 0.0
+    for f in path.rglob("*"):
+        try:
+            if f.is_file():
+                mtime = max(mtime, f.stat().st_mtime)
+        except OSError:
+            continue
     return {
         "name": path.name,
         "path": str(path),
+        "mtime": mtime,
         "declared_name": fm["name"],
         "description": fm["description"],
         "cowork": fm["cowork"],
@@ -436,11 +471,35 @@ def find_drift(dotfiles, claude, cowork, bundles):
             shape = (f"dotfiles is {delta} lines longer" if delta > 0
                      else f"Cowork copy is {-delta} lines longer" if delta < 0
                      else "same length, different content")
+            # Edits flow both ways now: Cowork exports down into dotfiles, and
+            # dotfiles edits are packaged and uploaded up. So name the stale
+            # side from the timestamps instead of assuming a direction.
+            cw_ts = parse_iso(cw.get("updated_at"))
+            df_ts = rec.get("mtime") or 0
+            if cw_ts is None:
+                who = "unknown which is newer — Cowork reports no timestamp"
+                fix = f"skill-status --diff {name} to see which side you want"
+            elif cw_ts - df_ts > CLOCK_SKEW:
+                who = "Cowork is newer"
+                fix = "the Cowork export hasn't reached dotfiles yet — re-run it"
+            elif df_ts - cw_ts > CLOCK_SKEW:
+                who = "dotfiles is newer"
+                fix = f"skill-package {name}, then re-upload it in Cowork"
+            else:
+                who = "edited at about the same time on both sides"
+                fix = f"skill-status --diff {name} — reconcile by hand"
             issues.append({
                 "skill": name, "kind": "cowork-stale",
-                "detail": f"dotfiles ≠ Cowork ({shape})",
-                "fix": f"skill-package {name}, then re-upload it in Cowork",
+                "detail": f"dotfiles ≠ Cowork ({shape}; {who})",
+                "fix": fix,
                 "diff": (cw["norm"], rec["norm"], "cowork", "dotfiles"),
+            })
+
+        if rec.get("git") == "uncommitted":
+            issues.append({
+                "skill": name, "kind": "uncommitted",
+                "detail": "in dotfiles but not committed — not backed up yet",
+                "fix": f"git -C ~/.dotfiles add ai/skills/{name} && git commit",
             })
 
         if rec["declared_name"] and rec["declared_name"] != name:
@@ -529,6 +588,8 @@ def main():
     not_mine = frozenset(cfg.get("not_mine", []))
 
     dotfiles = scan_dir(DOTFILES)
+    for rec in dotfiles.values():
+        rec["git"] = git_state(rec["path"])
     claude = scan_dir(CLAUDE_SKILLS)
     cowork = load_cowork(not_mine)
     bundles = load_bundles()
