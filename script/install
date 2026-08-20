@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#
+# Runs every topic's install.sh (homebrew, ai, ...).
+
+set -e
+
+DOTFILES_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+echo "› running installers"
+find "$DOTFILES_ROOT" -maxdepth 2 -name install.sh -not -path '*/.git/*' | while read -r installer; do
+  echo "› $(basename "$(dirname "$installer")")/install.sh"
+  bash "$installer"
+done
+
+echo
+echo "  All installed!"

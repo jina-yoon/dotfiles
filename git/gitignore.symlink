@@ -1,0 +1,6 @@
+# ~/.gitignore -> ~/.dotfiles/git/gitignore.symlink
+# Global ignores, applied to every repo on this machine.
+.DS_Store
+*.swp
+.idea/
+.vscode/

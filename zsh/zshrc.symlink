@@ -1,0 +1,31 @@
+# ~/.zshrc -> ~/.dotfiles/zsh/zshrc.symlink
+#
+# Loads every topic's shell config. To add something, drop a *.zsh file into
+# the relevant topic directory in ~/.dotfiles -- no edits to this file needed.
+
+export DOTFILES=$HOME/.dotfiles
+
+# All *.zsh files in every topic directory.
+typeset -U config_files
+config_files=($DOTFILES/*/*.zsh)
+
+# 1. path.zsh first, so everything below can rely on $PATH.
+for file in ${(M)config_files:#*/path.zsh}; do
+  source "$file"
+done
+
+# 2. Everything else, except completion (which must come last).
+for file in ${${config_files:#*/path.zsh}:#*/completion.zsh}; do
+  source "$file"
+done
+
+# 3. Autocompletion.
+autoload -U compinit && compinit
+for file in ${(M)config_files:#*/completion.zsh}; do
+  source "$file"
+done
+
+unset config_files
+
+# Machine-specific overrides that shouldn't be committed.
+[ -f ~/.localrc ] && source ~/.localrc

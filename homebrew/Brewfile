@@ -1,0 +1,4 @@
+# Packages installed by `dot`. Regenerate with: brew bundle dump --force
+# Add what you actually want tracked; this starts intentionally small.
+brew "gh"
+brew "git"

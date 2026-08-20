@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# dot -- bring this machine up to date with ~/.dotfiles.
+#
+#   dot          # everything
+#   dot --no-sudo-required   # skip macOS defaults
+
+set -e
+
+DOTFILES_ROOT="$HOME/.dotfiles"
+
+echo "› updating dotfiles"
+git -C "$DOTFILES_ROOT" pull --ff-only 2>/dev/null || echo "  (no upstream yet, skipping pull)"
+
+if [ "$1" != "--no-sudo-required" ]; then
+  echo "› setting macOS defaults"
+  bash "$DOTFILES_ROOT/macos/set-defaults.sh"
+fi
+
+echo "› linking dotfiles"
+"$DOTFILES_ROOT/script/bootstrap"
+
+echo "› running installers"
+"$DOTFILES_ROOT/script/install"
