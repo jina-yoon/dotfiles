@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Package a skill from ai/skills/ into a .skill bundle for uploading to Cowork.
+# Cowork can't read ~/.claude/skills, so skills shared between Claude Code and
+# Cowork live in ai/skills/ (source of truth) and get re-uploaded after edits.
+#
+# Usage: skill-package <skill-name> [output-dir]     (default output: ~/Desktop)
+
+set -euo pipefail
+
+SKILLS_DIR="$HOME/.dotfiles/ai/skills"
+name="${1:-}"
+out="${2:-$HOME/Desktop}"
+
+if [ -z "$name" ]; then
+  echo "usage: skill-package <skill-name> [output-dir]"
+  echo
+  echo "available:"
+  for d in "$SKILLS_DIR"/*/; do [ -d "$d" ] && echo "  $(basename "$d")"; done
+  exit 1
+fi
+
+src="$SKILLS_DIR/$name"
+[ -d "$src" ]            || { echo "no such skill: $src" >&2; exit 1; }
+[ -f "$src/SKILL.md" ]   || { echo "missing $src/SKILL.md" >&2; exit 1; }
+
+# The name: in frontmatter must match the folder name or Cowork rejects it.
+declared="$(sed -n 's/^name:[[:space:]]*//p' "$src/SKILL.md" | head -1 | tr -d '"'"'"'')"
+if [ "$declared" != "$name" ]; then
+  echo "frontmatter name '$declared' != folder name '$name'" >&2
+  exit 1
+fi
+
+mkdir -p "$out"
+dest="$out/$name.skill"
+rm -f "$dest"
+
+# A .skill is a zip with the skill folder at the root. evals/ is dev-only.
+( cd "$SKILLS_DIR" && zip -q -r "$dest" "$name" \
+    -x "$name/evals/*" "*/__pycache__/*" "*.pyc" "*/.DS_Store" )
+
+echo "packaged: $dest"
+echo "upload it in the Claude desktop app under Cowork's skill settings."

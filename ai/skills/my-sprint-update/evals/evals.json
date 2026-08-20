@@ -1,0 +1,49 @@
+{
+  "skill_name": "my-sprint-update",
+  "evals": [
+    {
+      "id": 0,
+      "name": "friday-full-prep",
+      "prompt": "it's friday afternoon — help me prep the editorial sprint. close out this week and set up next week's issue. show me the drafts first, don't post anything yet",
+      "expected_output": "A draft of next week's sprint issue (correct title '[SPRINT] Editorial August 10 - 14 2026', template body with previous-issue link to #3369) plus a draft of Jina's comment: retro with evidence-based checkmarks against her Aug 3-7 plan, proposed rating, next-sprint list, in her voice. Nothing posted.",
+      "files": [],
+      "assertions": [
+        "New issue title follows the house convention: '[SPRINT] Editorial August 10 - 14 2026' (spacing variants OK, must be the Aug 10-14 week)",
+        "Issue body draft reproduces the editorial-sprint-template body (Retro / Progress update / Next Sprint / Updates-questions-requests sections) and links to previous sprint issue #3369",
+        "Comment draft follows the house comment format: '## Retro' with a rating-out-of-10 line, a progress checklist, '## Next Sprint' with a checklist, and an updates/questions/requests section",
+        "Retro items correspond to Jina's actual Aug 3-7 plan and real activity (software factories newsletter, context engineering newsletter) — no invented accomplishments",
+        "Unverifiable completions are left unchecked or explicitly flagged for the user to confirm, rather than asserted as done",
+        "Nothing was posted: no issue/comment created on GitHub, no Slack message sent; the final response presents drafts for review"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "retro-and-plan-draft",
+      "prompt": "draft my retro comment for this week's editorial sprint issue and a plan for next week. i want to review everything before it goes to github",
+      "expected_output": "A comment draft following the house template (## Retro with rating + progress checklist, ## Next Sprint with focus + checklist, ### Updates/questions/requests), grounded in her actual week: software factories newsletter work, marketing repo issues #37/#233 updates, taste-article research. Checkmarks only where evidence exists; unverifiable items flagged.",
+      "files": [],
+      "assertions": [
+        "Locates the current sprint issue (PostHog/company-internal #3369) and grades Jina's own planned items from her comment there (ship software factories newsletter, start context engineering newsletter)",
+        "Comment draft follows the house comment format: '## Retro' with a rating-out-of-10 line, a progress checklist, '## Next Sprint' with a checklist, and an updates/questions/requests section",
+        "Checkmarks are evidence-backed (Slack #team-editorial or GitHub activity cited) or explicitly flagged as unverified",
+        "Next-sprint list carries over unfinished items and grounds new items in real signals (PostHog/marketing issues like #37/#233, Slack discussion) rather than generic filler",
+        "Voice matches Jina's past sprint comments: terse bullets, casual register, links — not a formal status report",
+        "Nothing was posted to GitHub or Slack; output is a draft for review"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "issue-setup-and-update",
+      "prompt": "set up next week's editorial sprint issue draft (the one in company-internal) and write up my update — what did i actually get done this week?",
+      "expected_output": "Correctly locates current sprint #3369 in PostHog/company-internal, drafts the new issue (title/labels/assignees from editorial-sprint-template.md) and an accurate what-got-done summary sourced from Slack #team-editorial and GitHub activity in PostHog/marketing, distinguishing verified from guessed items.",
+      "files": [],
+      "assertions": [
+        "Correctly identifies the current sprint issue #3369 in PostHog/company-internal as the sprint being closed out",
+        "New issue draft carries the metadata from editorial-sprint-template.md: labels 'marketing' and 'sprint', assignees andyvan-ph, ivanagas, natalia-amorim, jina-yoon, liamg-posthog, and the correct next-week title",
+        "The what-got-done update is sourced from real evidence (Slack #team-editorial messages, PostHog/marketing activity) and distinguishes verified items from guesses",
+        "References PostHog/marketing (not the retired PostHog/content name) for content planning context",
+        "Nothing was posted to GitHub or Slack; output is a draft for review"
+      ]
+    }
+  ]
+}

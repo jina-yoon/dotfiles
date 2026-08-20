@@ -56,8 +56,28 @@ Anything in `bin/` is on your `$PATH`.
 - **A new topic** → `mkdir tool/`, drop `*.zsh` / `*.symlink` / `install.sh` in it.
   Nothing else to wire up.
 - **A Claude Code skill** → put it in `ai/skills/<name>/` and run `script/install`.
-  It gets symlinked into `~/.claude/skills/`.
+  It gets symlinked into `~/.claude/skills/`. To also use it in Cowork, see below.
 - **A Homebrew package** → add it to `homebrew/Brewfile`.
+
+## Skills in both Claude Code and Cowork
+
+`ai/skills/<name>/` is the source of truth. The two clients pick it up differently:
+
+| Client | How | Picks up edits |
+| --- | --- | --- |
+| Claude Code | `script/install` symlinks it into `~/.claude/skills/` | Live — edit the file, done |
+| Cowork | Upload a `.skill` bundle in the desktop app | Only on re-upload |
+
+Cowork loads skills from its own server-synced plugin directory and never reads
+`~/.claude/skills`, so there's no way to symlink it. Re-package and re-upload
+after an edit:
+
+```sh
+skill-package my-sprint-update      # writes ~/Desktop/my-sprint-update.skill
+```
+
+Then upload it in Cowork's skill settings and delete the previous version, so
+the two clients don't drift.
 
 ## Local overrides
 
