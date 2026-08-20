@@ -69,15 +69,25 @@ Anything in `bin/` is on your `$PATH`.
 | Cowork | Upload a `.skill` bundle in the desktop app | Only on re-upload |
 
 Cowork loads skills from its own server-synced plugin directory and never reads
-`~/.claude/skills`, so there's no way to symlink it. Re-package and re-upload
-after an edit:
+`~/.claude/skills`, so there's no way to symlink it. The upload itself is gated
+behind a button press in the desktop app and can't be scripted — but the
+packaging is automatic.
+
+List a skill in `ai/cowork-skills.txt` and a PostToolUse hook
+(`ai/hooks/repackage-cowork-skills.sh`) rebuilds
+`~/Desktop/cowork-skills/<name>.skill` whenever its source changes. Drag that
+file into Cowork's skill settings and delete the previous version, so the two
+clients don't drift.
+
+The hook compares mtimes rather than reading the tool payload, so it catches
+edits made by Edit, Write, or a shell command alike. To build a bundle by hand:
 
 ```sh
-skill-package my-sprint-update      # writes ~/Desktop/my-sprint-update.skill
+skill-package my-sprint-update [output-dir]
 ```
 
-Then upload it in Cowork's skill settings and delete the previous version, so
-the two clients don't drift.
+The hook is registered in `~/.claude/settings.json`, which is **not** part of
+this repo — a fresh machine needs that entry added by hand.
 
 ## Local overrides
 
