@@ -1,32 +1,46 @@
 #!/usr/bin/env bash
 #
 # Symlink every skill in ai/skills into ~/.claude/skills so Claude Code
-# picks them up. Also links ai/CLAUDE.md to ~/.claude/CLAUDE.md if present.
+# picks them up, plus the two instruction files:
+#
+#   ai/AGENTS.md -> ~/AGENTS.md          the actual instructions, read by
+#                                        Claude Code, Codex, Cursor, et al.
+#   ai/CLAUDE.md -> ~/.claude/CLAUDE.md  a one-line "@~/AGENTS.md" import so
+#                                        Claude Code pulls in the same file
 
 set -e
 
 AI_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 
+# Replace our own symlinks, but never clobber a real file someone put there.
+link () {
+  local src=$1 dst=$2 label=$3
+  if [ -L "$dst" ]; then
+    rm "$dst"
+  elif [ -e "$dst" ]; then
+    echo "  skipping $label (a real file already exists at $dst)"
+    return
+  fi
+  mkdir -p "$(dirname "$dst")"
+  ln -s "$src" "$dst"
+  echo "  linked $label"
+}
+
 mkdir -p "$CLAUDE_DIR/skills"
 
 shopt -s nullglob
 for skill in "$AI_ROOT"/skills/*/; do
   name="$(basename "$skill")"
-  dst="$CLAUDE_DIR/skills/$name"
-  if [ -L "$dst" ]; then
-    rm "$dst"
-  elif [ -e "$dst" ]; then
-    echo "  skipping $name (a real directory already exists at $dst)"
-    continue
-  fi
-  ln -s "${skill%/}" "$dst"
-  echo "  linked skill: $name"
+  link "${skill%/}" "$CLAUDE_DIR/skills/$name" "skill: $name"
 done
 
-if [ -f "$AI_ROOT/CLAUDE.md" ] && [ ! -e "$CLAUDE_DIR/CLAUDE.md" ]; then
-  ln -s "$AI_ROOT/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
-  echo "  linked CLAUDE.md"
+if [ -f "$AI_ROOT/AGENTS.md" ]; then
+  link "$AI_ROOT/AGENTS.md" "$HOME/AGENTS.md" "AGENTS.md"
+fi
+
+if [ -f "$AI_ROOT/CLAUDE.md" ]; then
+  link "$AI_ROOT/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" "CLAUDE.md"
 fi
 
 # Register the Cowork repackaging hook. settings.json holds machine-local

@@ -57,7 +57,27 @@ Anything in `bin/` is on your `$PATH`.
   Nothing else to wire up.
 - **A Claude Code skill** → put it in `ai/skills/<name>/` and run `script/install`.
   It gets symlinked into `~/.claude/skills/`. To also use it in Cowork, see below.
+- **A global AI instruction** → add it to `ai/AGENTS.md`. See below.
 - **A Homebrew package** → add it to `homebrew/Brewfile`.
+
+## Global AI instructions
+
+`ai/AGENTS.md` holds the instructions that apply to every project on this
+machine. `script/install` puts it where each tool looks:
+
+| Path | What it is |
+| --- | --- |
+| `~/AGENTS.md` | Symlink to `ai/AGENTS.md`. The file itself. |
+| `~/.claude/CLAUDE.md` | Symlink to `ai/CLAUDE.md`, which is one line: `@~/AGENTS.md` |
+
+`AGENTS.md` lives in `$HOME` rather than `~/.claude/` because that's the path
+Codex, Cursor, and friends look for — keeping it there means one file for all of
+them. Claude Code only auto-loads `~/.claude/CLAUDE.md`, so that file exists
+purely to `@`-import the real one. (`@` is Claude Code's import syntax; it
+resolves relative to the importing file and nests up to 5 levels deep.)
+
+Edits are live in both directions — the symlinks point at the repo, so there's
+nothing to re-run after changing `ai/AGENTS.md`.
 
 ## Skills in both Claude Code and Cowork
 
