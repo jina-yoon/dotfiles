@@ -1,4 +1,0 @@
-# Skills used in Cowork as well as Claude Code. Each one listed here gets
-# repackaged into ~/Desktop/cowork-skills/<name>.skill whenever it's edited,
-# ready to upload. Cowork can't read ~/.claude/skills, so the upload is manual.
-my-sprint-update

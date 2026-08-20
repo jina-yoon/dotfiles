@@ -13,6 +13,8 @@ compatibility: Requires `gh` CLI authenticated with access to PostHog/company-in
   and the Slack MCP tools (read-only use). Uses the Google Drive MCP tools for Google Docs
   evidence when they're connected (they are in Cowork; usually not in Claude Code) – the
   skill works without them, just with a blind spot.
+metadata:
+  cowork: true
 ---
 
 # Editorial Sprint Prep

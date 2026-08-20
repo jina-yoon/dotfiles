@@ -73,11 +73,21 @@ Cowork loads skills from its own server-synced plugin directory and never reads
 behind a button press in the desktop app and can't be scripted — but the
 packaging is automatic.
 
-List a skill in `ai/cowork-skills.txt` and a PostToolUse hook
-(`ai/hooks/repackage-cowork-skills.sh`) rebuilds
-`~/Desktop/cowork-skills/<name>.skill` whenever its source changes. Drag that
-file into Cowork's skill settings and delete the previous version, so the two
-clients don't drift.
+A skill opts in by declaring this in its own `SKILL.md` frontmatter:
+
+```yaml
+metadata:
+  cowork: true
+```
+
+A PostToolUse hook (`ai/hooks/repackage-cowork-skills.sh`) then rebuilds
+`~/Desktop/cowork-skills/<name>.skill` whenever that skill's source changes.
+Drag the file into Cowork's skill settings and delete the previous version, so
+the two clients don't drift.
+
+The marker lives in the skill rather than a separate list so there's only one
+place to remember. `metadata` is the one frontmatter key whose nested fields
+Cowork's validator ignores, so the flag is safe to upload.
 
 The hook compares mtimes rather than reading the tool payload, so it catches
 edits made by Edit, Write, or a shell command alike. To build a bundle by hand:
@@ -86,8 +96,10 @@ edits made by Edit, Write, or a shell command alike. To build a bundle by hand:
 skill-package my-sprint-update [output-dir]
 ```
 
-The hook is registered in `~/.claude/settings.json`, which is **not** part of
-this repo — a fresh machine needs that entry added by hand.
+`script/install` registers the hook in `~/.claude/settings.json`. That file
+isn't in this repo (it holds machine-local settings too), so the entry is
+merged in rather than overwritten — re-running is safe, and existing hooks are
+left alone.
 
 ## Local overrides
 
