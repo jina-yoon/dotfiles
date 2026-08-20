@@ -9,7 +9,10 @@ description: >
   meeting — even if they just say "do my sprint prep" or "help me with my
   sprint". Produces a draft for review; never posts to GitHub without explicit
   approval.
-compatibility: Requires `gh` CLI authenticated with access to PostHog/company-internal, and the Slack MCP tools (read-only use).
+compatibility: Requires `gh` CLI authenticated with access to PostHog/company-internal,
+  and the Slack MCP tools (read-only use). Uses the Google Drive MCP tools for Google Docs
+  evidence when they're connected (they are in Cowork; usually not in Claude Code) – the
+  skill works without them, just with a blind spot.
 ---
 
 # Editorial Sprint Prep
@@ -109,6 +112,28 @@ gh search issues --involves jina-yoon --updated ">=<monday>" --repo PostHog/mark
 gh search prs    --involves jina-yoon --updated ">=<monday>" --repo PostHog/marketing --repo PostHog/posthog.com --json number,title,repository,state,url
 ```
 
+- **Google Docs**: a lot of the user's writing and reviewing happens in Docs,
+  and none of it shows up in Slack or GitHub. If the Google Drive MCP tools
+  are available, check two things (skip this step entirely if they aren't –
+  say so in the presentation rather than guessing):
+
+  - *What she wrote or edited* – `list_recent_files` with
+    `orderBy: lastModifiedByMe`, then keep files whose timestamp falls inside
+    the sprint window. This is the reliable signal: it's scoped to her own
+    edits.
+  - *What she reviewed* – docs owned by someone else that she opened during
+    the window:
+
+    ```
+    search_files: viewedByMeTime > '<monday>T00:00:00Z' and owner != 'me'
+                  and mimeType = 'application/vnd.google-apps.document'
+    ```
+
+  Match docs to work by title (newsletter issues, blog drafts, briefs). Use
+  `get_file_metadata` or `read_file_content` if a title is ambiguous, but
+  don't read whole drafts just to characterise them – the title plus the
+  matching Slack or GitHub thread is usually enough.
+
 - **Planning context for next week**: skim `PostHog/marketing` issue #37 and
   any issues assigned to the user there – these seed the next-sprint list.
 - **Availability**: note OOO/holiday/return messages in Slack.
@@ -120,6 +145,15 @@ Cross-reference each item from last week's plan against the evidence:
 - Mark `[x]` only when you have concrete evidence (a shipped post, a merged
   PR, a Slack message saying it went out). Cite the evidence in your chat
   presentation (not in the draft itself).
+- **Drive evidence is weaker than Slack or GitHub evidence – don't let it
+  produce checkmarks on its own.** `lastModifiedByMe` proves she edited a
+  doc, not that the work is finished; `viewedByMeTime` only proves she opened
+  it, which is not the same as reviewing it. On a doc owned by someone else,
+  `modifiedTime` may well be someone else's edit. So treat a Drive hit as a
+  prompt: it corroborates an item that has other evidence, or it becomes a
+  "couldn't verify – did this happen?" flag. Substantial editing in a doc
+  that matches a planned item is worth surfacing even unverified, since it's
+  often the only trace that the week's writing happened at all.
 - Staged-but-not-shipped work (e.g. a newsletter loaded and scheduled but not
   sent) stays `[ ]` with a short note like "ready, publishes mon" – don't
   check it with a caveat.
