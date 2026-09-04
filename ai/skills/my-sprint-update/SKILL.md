@@ -35,8 +35,11 @@ The comment is drafted for the user to review in chat. **Nothing is posted to
 GitHub until the user explicitly approves.** If you're running
 non-interactively and can't get approval, stop at the draft.
 
-This skill does NOT create the weekly sprint issue itself – that happens
-elsewhere. It only drafts and (on approval) posts the user's comment.
+This skill does NOT create the weekly sprint issue itself. A scheduled task
+("Create weekly Editorial sprint issue") now creates the *upcoming* week's
+issue automatically every **Friday at 4pm PT**, so by prep time it usually
+already exists (if the user preps before 4pm on Friday it may not be up yet).
+This skill only drafts and (on approval) posts the user's comment.
 
 ## House format (learned from real issues – don't invent sections)
 
@@ -72,7 +75,10 @@ Do not draft comments for other team members; each person writes their own.
 - Sprint issues live in `PostHog/company-internal`, titled
   `[SPRINT] Editorial {start} - {end} {year}` (e.g. `August 10 - 14 2026`).
   The current one is always discoverable by searching for the newest such
-  title – never ask the user for the issue URL.
+  title – never ask the user for the issue URL. The upcoming week's issue is
+  created automatically by a scheduled task each **Friday at 4pm PT** (older
+  weeks were created by hand), so it normally exists by prep time; still
+  discover it by searching rather than assuming a number.
 - Content planning lives in **`PostHog/marketing`** (renamed from
   `PostHog/content` – always use `marketing`). Planning issue: #37. Newsletter
   and blog work each have their own issues there.
@@ -93,9 +99,10 @@ gh api -X GET search/issues -f q='repo:PostHog/company-internal in:title "[SPRIN
 ```
 
 Work out from the titles which issue covers the *ending* week and whether the
-*upcoming* week's issue exists yet (it may not on Friday – it's created
-elsewhere). The retro grades the user's plan, which lives in their comment on
-the ending week's issue (`gh issue view <n> --repo PostHog/company-internal
+*upcoming* week's issue exists yet. The scheduled task creates it every Friday
+at 4pm PT, so it usually does; if the user preps before 4pm it may not be up
+yet. The retro grades the user's plan, which lives in their comment on the
+ending week's issue (`gh issue view <n> --repo PostHog/company-internal
 --json body,comments`). If the user posted no comment last week, say so and
 build the retro purely from evidence.
 
@@ -218,6 +225,7 @@ go-ahead:
 gh issue comment <issue-number> --repo PostHog/company-internal --body-file <drafted-comment>
 ```
 
-- If it doesn't exist yet, say so and stop – don't post the comment to the
-  ending week's issue, and don't create the issue yourself. The user can rerun
-  the posting step once the new issue is up.
+- If it doesn't exist yet (e.g. prepping before the Friday 4pm PT scheduled
+  task has run), say so and stop – don't post the comment to the ending
+  week's issue, and don't create the issue yourself. The user can rerun the
+  posting step once the new issue is up.

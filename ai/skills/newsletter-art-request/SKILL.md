@@ -1,6 +1,6 @@
 ---
 name: newsletter-art-request
-description: File a PostHog art request issue in PostHog/marketing for a build mode newsletter, either a hero image or a polish pass on infographics, and upload any Claude-generated SVGs into the Newsletter Graphics Figma file. Use this whenever Jina needs artwork, a hero image, a header image, a polish pass, infographic cleanup, or design help for a newsletter or blog post, including when she says "file an art request", "ask design for a hero image", "I need art for this issue", "get the graphics polished", "submit this to the art board", or just links a newsletter Google Doc and says she needs images. Also use it when she wants to add newsletter SVGs to Figma, even if no GitHub issue is involved.
+description: "File a PostHog art request issue in PostHog/marketing for a build mode newsletter, either a hero image or a polish pass on infographics, and upload any Claude-generated SVGs into the Newsletter Graphics Figma file. Use this whenever Jina needs artwork, a hero image, a header image, a polish pass, infographic cleanup, or design help for a newsletter or blog post, including when she says \"file an art request\", \"ask design for a hero image\", \"I need art for this issue\", \"get the graphics polished\", \"submit this to the art board\", or just links a newsletter Google Doc and says she needs images. Also use it when she wants to add newsletter SVGs to Figma, even if no GitHub issue is involved."
 ---
 
 # Newsletter art requests
@@ -53,13 +53,16 @@ While reading, note:
 - The three-ish load-bearing arguments, for the TL;DR bullets on a hero request.
 - Every image in the doc, for a polish pass. Note roughly where each one sits in the article and what it is called.
 
+**She sometimes hands you the doc link and tells you not to read it**, because she only wants it as the link in the issue body. Take her at her word and skip the reading. That leaves you with no TL;DR and no infographic list, so ask for those in step 3 rather than inferring them from the topic.
+
 ### 3. Ask for what the doc cannot tell you
 
 In one message, ask only what is genuinely missing. Typically:
 
-- **Deadline.** Write down exactly what she says. Do not add warnings about lead time and do not invent a default date.
+- **Deadline.** Newsletter art is due **Thursday EOD**, so propose the coming Thursday and let her correct it. (It used to be Friday. She moved it in September 2026.) Whatever she gives you, write it down exactly as she said it. Do not add warnings about lead time.
 - **Hero image text** (hero requests only). Propose one drawn from the headline and let her correct it. If she is not sure yet, say so in the issue and mark it a placeholder, which is what she has done before.
-- **Imagery ideas** (hero requests only). Propose two or three concrete concepts based on the article, as a bulleted list, and let her pick or replace them. She often ranks them by preference and adds "very open to new ideas".
+- **Imagery ideas** (hero requests only). Propose two or three concrete concepts based on the article, as a bulleted list, and let her pick or replace them. She often ranks them by preference and adds "very open to new ideas". If she has already said what should be in the image ("it should have a game joystick in it"), that is the direction: one sentence, plus "Open to suggestions!". Do not pad it with alternatives she did not ask for.
+- **TL;DR bullets**, if you could not read the doc. Offer to read it, to take her bullets, or to leave the TL;DR out. She sometimes picks leaving it out, and that is fine. Do not invent bullets from the topic alone.
 - **Anything to add.** Notes, constraints, references, whether she is OOO.
 
 Skip anything you already know. Do not ask her to confirm build mode, it always is.
@@ -93,6 +96,8 @@ Then read `references/figma.md` to place them on the "build mode graphics" page,
 
 Only use the "I don't have a Figma link to provide" fallback when you have actually searched and come up empty, and say that you searched.
 
+**The graphics do not always exist yet.** She will sometimes file the polish pass alongside the hero anyway, to get it on the board, and promise the list later ("the infographics are tbd but i should have finalized on tuesday"). When she does, skip the SVG hunt entirely and write a one-sentence Outline saying the graphics are still being finalized and she will add the list with SVGs and images on the day she named. Do not invent placeholder entries. The SVG discovery and Figma upload then happen when you come back to edit that issue on the day.
+
 ### 6. Show her the draft, then file
 
 Show the full issue body (both, if it is a pair) and wait for approval. Do not file first and edit after.
@@ -102,8 +107,24 @@ On approval, file in `PostHog/marketing` with:
 - label `artwork`
 - assignees `lottiecoxon`, `dphawkins1617`, `heidiberton`
 
-The template also adds it to the Art & Brand Planning board (`PostHog/65`). If your tools cannot set the project, file the issue anyway and tell her it needs adding to the board.
-
 **Order matters for a pair.** File the hero first so you have its number, then file the polish pass referencing it, then edit the hero to add the trailing cross-link. Do not leave a `#TBD` in either body.
+
+### 7. Put both issues on both project boards
+
+Every art request belongs to two boards:
+
+| Board | How it gets there |
+|---|---|
+| Art & Brand Planning (`PostHog/projects/65`) | Added automatically by the repo's project automation. Confirm it landed, do not add it by hand. |
+| Jina's Stuff (`PostHog/projects/217`) | You have to add it. She asks for this every time. |
+
+The GitHub MCP `issue_write` tool cannot set projects, so use the browser. Her Chrome session is logged in to GitHub; the built-in browser pane is not, so use the Claude in Chrome tools here. For each issue:
+
+1. Open the issue and `find` the "Edit Projects" button in the sidebar.
+2. Click it **once**, then type `Jina` to filter. Clicking twice toggles the dropdown shut again, and a `find` that reports no dropdown usually means you closed it, not that it failed to open.
+3. The filtered list shows "Jina's Stuff" three times, under Recent, Repository and Organization. They are the same project (`projects/217`), so click any one.
+4. **Verify by reloading the issue and re-reading the sidebar.** The state right after the click is unreliable, and the page sometimes wedges hard enough that screenshots time out for a while. A reload settles it and tells you the truth. Do not retry the click before you have reloaded and checked, or you risk removing the project you just added.
+
+If the browser is unavailable, file the issues anyway and tell her they still need adding to Jina's Stuff.
 
 Give her the issue URLs when you are done. One line. She does not need a recap of what the issues say, she just approved them.
