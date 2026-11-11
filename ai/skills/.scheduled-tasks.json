@@ -1,0 +1,183 @@
+{
+  "exportedAt": "2026-11-11",
+  "tasks": [
+    {
+      "id": "trig_01FYuvfYRcRrKxCX7NUWW4Pr",
+      "name": "Add my new GitHub items to Jina's Stuff board",
+      "cron_expression": "0 14 * * 1-5",
+      "run_once_at": null,
+      "enabled": true,
+      "model": "claude-opus-5",
+      "permission_mode": "auto",
+      "folders": [],
+      "notifications": {
+        "channel": {
+          "push": false,
+          "email": false
+        }
+      },
+      "connectors": [
+        "Claude_Code_Remote",
+        "Context7",
+        "Deel_MCP",
+        "Figma",
+        "GitHub_Copilot_MCP",
+        "Gmail",
+        "Google_Calendar",
+        "Google_Drive",
+        "Shopify",
+        "Slack"
+      ],
+      "prompt": "Every weekday morning, find GitHub issues and PRs from the last 7 days that belong on Jina Yoon's personal project board and add them to it.\n\n## The board\n\"Jina's Stuff\" — org project 217 in the PostHog org.\nURL: https://github.com/orgs/PostHog/projects/217/views/1\nJina's GitHub login is `jina-yoon`.\n\n## Step 1 — Find candidates (use the GitHub MCP tools, not the gh CLI)\n\nFirst get today's date (`date -u +%Y-%m-%d`) and compute CUTOFF as today minus 7 days. Then run these four searches, substituting CUTOFF. The `-project:PostHog/217` qualifier is what excludes items already on the board — it is verified to work correctly, so trust it. Because the window is 7 days, most runs will re-surface nothing new: the project filter does the real work, and the window exists only so a missed or failed run self-heals on the next day rather than losing those items permanently.\n\n1. Issues she created:\n   `search_issues` with query: `is:issue is:open author:jina-yoon org:PostHog -project:PostHog/217 created:>=CUTOFF`\n\n2. PRs she created:\n   `search_pull_requests` with query: `is:pr is:open author:jina-yoon org:PostHog -project:PostHog/217 created:>=CUTOFF`\n\n3. PRs where a review is requested from her PERSONALLY:\n   `search_pull_requests` with query: `is:pr is:open user-review-requested:jina-yoon org:PostHog -project:PostHog/217 updated:>=CUTOFF`\n\n4. Issues ASSIGNED to her that she did not create:\n   `search_issues` with query: `is:issue is:open assignee:jina-yoon -author:jina-yoon org:PostHog -project:PostHog/217 updated:>=CUTOFF`\n\n   Note this one filters on `updated:`, not `created:`, on purpose: someone can assign her a months-old issue today, and assignment bumps the updated timestamp. Filtering on `created:` here would silently miss exactly the case the search exists for. `-author:jina-yoon` prevents double-counting items already caught by search 1.\n\nCRITICAL on search 3: use `user-review-requested:` and NEVER `review-requested:`. Jina is a member of the PostHog/editors team, and `review-requested:jina-yoon` also returns every PR requested from that team — which she explicitly does NOT want on her board. `user-review-requested:` matches only direct individual requests to her. This distinction was verified: at setup time `review-requested:` returned 2 team-requested PRs while `user-review-requested:` correctly returned 0.\n\nRequest only the fields you need (number, title, html_url, created_at, state, repository_url) to keep responses small.\n\nIf all four searches return zero items, there is nothing to do. Say so in one line and stop — do not open a browser, and do not run extra verification queries. A zero result is normal and common on a quiet day; treat it as the expected outcome, not as a problem to investigate.\n\n## Step 2 — Add them to the board via Chrome\n\nOnly if there is at least one candidate. Use the Claude in Chrome browser tools (invoke the claude-in-chrome skill first, then load the browser tools with a single ToolSearch call).\n\n1. Create a new tab and navigate to https://github.com/orgs/PostHog/projects/217/views/1\n2. Screenshot to confirm the board loaded (title \"Jina's Stuff\", a table view, and a bottom row reading \"You can use Control + Space to add an item\").\n3. For each candidate item:\n   a. Press `ctrl+space` to open the add-item input at the bottom of the table.\n   b. Type `#` — a repository picker appears listing posthog.com, marketing, company-internal, posthog, and others.\n   c. Type the repository name to filter, select it, then type the issue/PR number or a distinctive phrase from its title to find the item, and select it to add.\n   d. Screenshot and confirm a new row appeared with the correct title and number before moving on.\n4. When done, screenshot the full board once and close the tab you created.\n\nDo not press Enter on a raw pasted URL — if the URL fails to resolve, GitHub creates a junk draft item titled with the URL. Use the `#` repository-picker path.\n\n## Fallback — this matters\n\nThe final \"commit the add\" keystroke may be refused by a permission classifier, and the browser bridge only works while Jina's desktop app and Chrome are actually running. If the browser is unreachable, or an add is blocked or fails twice, STOP trying to automate it. Do not retry in a loop. Instead, output a short list of the items that still need adding — title, number, repo, and full URL, one per line, grouped as \"Created by you\", \"Review requested from you\", and \"Assigned to you\" — so she can add them with two clicks. A clear list is a perfectly good outcome; a silent failure is not.\n\nNote: the GitHub MCP connector's OAuth can expire, and a scheduled run cannot re-authenticate itself. If the GitHub tools are unavailable or return auth errors, say so plainly and tell Jina to reconnect the GitHub connector in claude.ai under Customize → Connectors. Do not fall back to the gh CLI — its token in the run environment is not valid.\n\n## Report\nFinish with a brief summary: how many items were found, which were added successfully (with numbers), and which still need manual adding and why. Keep it to a few lines."
+    },
+    {
+      "id": "trig_019E4Ebq6Wjwh6YYUAgnPAhE",
+      "name": "Create weekly Editorial sprint issue",
+      "cron_expression": "0 23 * * 5",
+      "run_once_at": null,
+      "enabled": true,
+      "model": "claude-opus-4-8",
+      "permission_mode": null,
+      "folders": [],
+      "notifications": {
+        "channel": {
+          "push": true,
+          "email": false
+        }
+      },
+      "connectors": [
+        "Claude_Code_Remote",
+        "Context7",
+        "Deel_MCP",
+        "Figma",
+        "GitHub_Copilot_MCP",
+        "Google_Drive",
+        "PostHog",
+        "Shopify",
+        "Slack"
+      ],
+      "prompt": "You are helping Jina Yoon (GitHub: jina-yoon), on the editorial team at PostHog. Your job in this run is to create the weekly \"[SPRINT] Editorial\" GitHub issue in the PostHog/company-internal repo for the UPCOMING work week, using the GitHub MCP tools. This runs every Friday afternoon; the issue you create is for the Monday–Friday of the following week.\n\nIMPORTANT: Only CREATE the issue. Do NOT write or post Jina's sprint comment — she writes that herself. Do not add any comments to the issue.\n\nSteps:\n\n1. Determine today's date (the Friday this fires). Compute the target sprint week: the NEXT Monday (today + 3 days) through the following Friday (today + 7 days). This Mon–Fri range is the week the new issue covers.\n\n2. Check for duplicates first. Use the GitHub search/list tools on PostHog/company-internal to find recent issues whose title starts with \"[SPRINT] Editorial\" (search query: [SPRINT] Editorial, sorted by created desc). Look at the most recent few. If ANY existing Editorial sprint issue already covers the target week's dates (a teammate already made it), STOP — do not create a duplicate. In that case, report which existing issue already covers the week (number + URL) and that you skipped creation.\n\n3. If no issue exists for the target week, create it:\n   - Title format matches the existing series exactly: \"[SPRINT] Editorial {Month} {startDay} - {endDay} {Year}\" for a same-month range (e.g. \"[SPRINT] Editorial September 7 - 11 2026\"). If the range crosses months, write both month names, e.g. \"[SPRINT] Editorial August 31 - September 4 2026\". Full month name, no comma before the year, no leading zeros on days.\n   - Identify the most recent previous \"[SPRINT] Editorial\" issue (the current/last week's one) — you'll link to it and copy its labels and assignees.\n   - Copy the LABELS and ASSIGNEES from that most recent previous Editorial issue so they stay current. (As of setup these were labels: marketing, sprint; assignees: ivanagas, andyvan-ph, natalia-amorim, jina-yoon, liamg-posthog — use whatever the latest issue actually has.)\n   - Body must be exactly this (fill in {PREVIOUS_ISSUE_URL} with the full URL of the most recent previous Editorial sprint issue), including the fenced code block:\n\nPlease add your notes as comments using the template below (don't edit this in case someone else is editing at the same time!)\n\nPrevious sprint GitHub issue: {PREVIOUS_ISSUE_URL}\n\n```\n## Retro\n\n- How did the sprint go? {Rating out of 10 and a description why you've given that rating}\n\n### Progress update\n\n- [ ] ...\n- [ ] ...\n- [ ] ...\n\n## Next Sprint\n\n**Focus:** (Optional field about your main focus this week)\n\n> A bullet point for each key thing you'll be working on and anything important that others should know e.g. being on holiday.\n\n- [ ] ...\n- [ ] ...\n- [ ] ...\n\n### Updates, questions, and requests\n\n> Update people on things you're working on, ask a question, or request help/feedback\n\n- ...\n```\n\n4. Report the result concisely: the new issue's title, number, and URL (or, if you skipped, which existing issue already covered the week). Keep it short."
+    },
+    {
+      "id": "trig_017CmfDp6mqQSSen6A3aenec",
+      "name": "Daily Slack brief (weekdays)",
+      "cron_expression": "0 11 * * 1-5",
+      "run_once_at": null,
+      "enabled": true,
+      "model": "claude-opus-4-8",
+      "permission_mode": "auto",
+      "folders": [],
+      "notifications": {
+        "channel": {
+          "push": false,
+          "email": false
+        }
+      },
+      "connectors": [
+        "Claude_Code_Remote",
+        "Context7",
+        "Deel_MCP",
+        "Figma",
+        "GitHub_Copilot_MCP",
+        "Google_Drive",
+        "PostHog",
+        "Shopify",
+        "Slack"
+      ],
+      "prompt": "You are generating Jina's daily PostHog Slack briefing and sending it to her as a Slack DM. Jina (Slack user U09STHEMXH6, jina@posthog.com) is a technical content marketer at PostHog on the editorial/content team (newsletters, blogs, SEO, socials). PostHog is fully remote, so important announcements live in Slack. The point of this briefing is so she doesn't miss team/company happenings, and to surface newsletter content ideas. Deliver it as a single Slack DM to her — this goes ONLY to Jina herself; never post to any other channel or DM anyone else.\n\nTIMEFRAME: First run `date` to get today's date and weekday. Normally cover Slack activity from roughly the last 24 hours (since ~4am PT yesterday). On MONDAYS, cover the last 3 days (Friday morning through now) to catch the weekend. Use after:/before: date filters in searches accordingly.\n\nUse the Slack tools: slack_search_public (with from:/in:/after: modifiers), slack_read_channel, slack_read_thread, slack_search_users. Build the briefing in two sections.\n\nSECTION 1 — \"What I might've missed\" (important editorial/marketing/company signal):\nSurface messages relevant to the editorial team (newsletter, blog, SEO, socials) or the broader marketing / content / brand org — announcements, FYIs, decisions, plans, deadlines, or asks. Prioritize messages from these people (Jina's management chain and direct teammates); search each with a query like \"from:<@ID> after:<date>\":\n- Charles Cook (U01CW2QE6KH) — skip-skip manager, exec\n- Andy Vandervell (U02QPCBE9S7) — skip manager, content marketing lead\n- Ian Vanagas (U0432HMTU57) — her direct manager\n- Liam Graham (U0ANEP1GXHC) — direct teammate\n- Natalia / Natalia Amorim (U09DG4X7P0B) — direct teammate\nInclude a message only if it is genuinely notable — an announcement, decision, FYI, or something needing her attention. Skip routine chatter, emoji reactions, and pure scheduling logistics. Also flag anything that directly @mentions Jina (U09STHEMXH6) or clearly awaits a reply from her.\n\nPTO CHECK: Also do a quick, lightweight check for upcoming or current time off among these same five people. For each, run one cheap Slack search — e.g. `from:<@ID> after:<recent date> (PTO OR holiday OR vacation OR \"off\" OR OOO OR away OR leave OR \"back on\")` — and also watch for other people referencing their time off in the messages you already read (phrases like \"before your PTO\", \"while I'm out\", \"when X is back\"). If anyone is out or has upcoming PTO, add a short \"🌴 PTO watch\" line near the top of Section 1 naming who's out and the dates/duration as stated (mark [unverified] if the exact dates aren't explicit — don't guess them). Keep it to one or two lines total. If nobody on the list has upcoming or current PTO, omit this line silently rather than stating that everyone is in. This is a quick signal, not an exhaustive HR lookup — a couple of searches is enough.\n\nSECTION 2 — \"Newsletter content ideas\":\nSurface things worth considering for PostHog's newsletter — either interesting internal dev projects/demos/updates, or links/articles/tools people shared that could work as \"Further Reading\" for a product-engineer audience. Check these channels:\n- #demo-posthog-anything (C0AP5NXF8D7) — internal dev projects and demos\n- #devel-random (C02EJABQ39R) — shared links and articles\n- #dev-ai (C09KTRWD3HD) — shared links, articles, and AI/dev discussion\nPull only standout items: a cool demo, a sharp article, a genuinely useful tool or argument. Skip funding rounds, launches, and company PR.\n\nFOR EVERY ITEM in both sections, include: who posted, a one-line summary of why it matters, and a clickable Slack permalink to the message. Prefer any permalink the Slack tools return; otherwise construct it as https://posthog.slack.com/archives/<CHANNEL_ID>/p<MESSAGE_TS with the dot removed> (e.g. ts 1725480000.123456 -> p1725480000123456). Do NOT invent, paraphrase, or smooth over content you did not actually read — if you're unsure what a message says, link it and note that rather than guessing. Mark anything uncertain as [unverified].\n\nFORMAT: Keep it tight and skimmable — short bullets, lead with the point, no preamble. Start with a header line like \"☕ Daily brief — <weekday>, <Month DD>\". If a section has nothing noteworthy, say so in one line rather than padding it. If the whole period is genuinely quiet, send a short \"nothing major today\" note so she knows the task ran.\n\nFinally, send the finished briefing as a Slack DM to Jina using slack_send_message with channel_id U09STHEMXH6."
+    },
+    {
+      "id": "trig_01Cp6G4ncE9pHKf9GkRGZDke",
+      "name": "Substack subs import",
+      "cron_expression": "CRON_TZ=America/Los_Angeles 56 9 * * 1-5",
+      "run_once_at": null,
+      "enabled": true,
+      "model": "claude-opus-5-5",
+      "permission_mode": "auto",
+      "folders": [
+        "/Users/jinayoon/cowork/Editorial/Substack subs"
+      ],
+      "notifications": {
+        "channel": {
+          "push": true,
+          "email": true,
+          "slack": true
+        }
+      },
+      "connectors": [
+        "Claude_Code_Remote",
+        "Claude_Docs",
+        "Context7",
+        "Deel_MCP",
+        "Figma",
+        "GitHub_Copilot_MCP",
+        "Google_Docs",
+        "Google_Drive",
+        "Notion",
+        "PostHog",
+        "Slack"
+      ],
+      "prompt": "Run daily. Sync new PostHog newsletter signups to the \"build mode\" publication on Substack.\n\nSOURCE\nUse the PostHog plugin in PostHog Inc., project 2 (PostHog App + Website).\nThe verified source definition is:\nhttps://us.posthog.com/project/2/insights/bn1ojimP\n\nLoad the current PostHog querying skill and required schema. Use this SQL:\n\nSELECT DISTINCT properties.email AS email\nFROM events\nWHERE event = 'newsletter_subscribed'\n  AND timestamp >= toDateTime('<START_UTC>', 'UTC')\n  AND timestamp < toDateTime('<END_UTC>', 'UTC')\n  AND properties.$referring_domain IS NOT NULL\n  AND properties.email IS NOT NULL\nORDER BY email\nLIMIT 500 OFFSET <OFFSET>\n\nFreeze END_UTC at the start of each run. Paginate in increments of 500 until a page contains fewer than 500 rows. Trim whitespace, lowercase and deduplicate addresses. Omit blank or malformed addresses; never guess or correct spellings.\n\nSTATE AND DUPLICATE PREVENTION\nPersist state atomically at: <ABSOLUTE_STATE_FILE_PATH>\n\nStore:\n- initial_start_utc\n- last_confirmed_end_utc\n- processed_emails\n- quarantined_emails\n- pending_batches\n- import history, including filenames, email lists, UTC windows, counts,\n  timestamps, welcome-email setting and completion evidence\n\nRead state before doing anything. Reconcile every pending submitted batch by its exact filename before submitting another.\n\nQuery from last_confirmed_end_utc minus seven days, but never earlier than initial_start_utc. Exclude processed emails, quarantined emails and every address in pending submitted batches.\n\nFor a fresh setup, explicitly choose the initial start date. Do not silently backfill older history.\n\nSUBSTACK IMPORT\nOpen:\nhttps://newsletter.posthog.com/publish/subscribers/add\n\nVerify the publication is \"build mode\".\n\nCreate a UTF-8 CSV with a single \"email\" header and a unique filename containing the run's UTC date and time.\n\nUpload through Choose file. Describe the source truthfully:\n\"Explicit newsletter_subscribed signup events from the PostHog website,\nproject 2, using the verified Newsletter subscribers insight filters.\nUTC window: <START inclusive> through <END exclusive>.\nPreviously handled, quarantined, pending and malformed addresses excluded.\"\n\nEnable \"Send welcome email to new subscribers\" and verify it is checked.\nLeave tags off.\nConfirm the opt-in checkbox only for this verified signup source.\nPreserve Substack unsubscribes and suppressions; never force resubscription.\n\nBefore clicking final Import, persist the filename, addresses, UTC window,\nwelcome_email: true and status: submitting.\n\nAUTHENTICATION\nUse the authenticated browser session when available.\n\nIf Substack requests email verification, use the normal verification flow.\nOnly check <AUTHORIZED_EMAIL_ACCOUNT> if its owner explicitly authorizes\nreading and using recent Substack verification messages.\n\nIf the email connector withholds or redacts the code, stop and ask the\naccount owner to enter it in Substack. Do not extract it through raw HTML,\nalternate encodings or another channel. Preserve the prepared batch for\nresumption after verification.\n\nCOMPLETION AND ERRORS\nAn upload or \"Importing\" status is not success. Wait for the exact file's\nterminal Imported or failed status, and record the actual UI counts:\nemails, added, existing/other and errors.\n\nIf Imported and counts fully reconcile, mark all submitted addresses\nprocessed (meaning handled, not necessarily active subscribers), archive\nthe batch, clear pending and advance the checkpoint to its end_utc.\n\nIf Imported but counts differ:\n- Record the actual counts without inventing an explanation.\n- Mark only individually verified added/existing addresses processed.\n- Quarantine the remaining addresses, or the whole batch if individual\n  identities are unavailable.\n- Archive as completed_with_exceptions, clear pending and advance the\n  checkpoint.\n- Continue syncing unrelated new signups. Never retry quarantined addresses\n  automatically.\n\nIf still Importing or the submission outcome is ambiguous, retain pending\nstate and exclude those addresses from future uploads. Other new signups\nmay proceed in separate tracked batches.\n\nFor explicit failures, preserve error evidence. Retry only if no partial\nimport occurred and the cause has been resolved; otherwise quarantine\nthe affected batch.\n\nAdvance a no-new-address checkpoint only after a complete paginated query.\nNever treat a query, login or upload failure as a successful run.\n\nREPORTING\nReport completed imports with submitted, added, existing/other and\nunaccounted counts. Report failures and required actions. Clearly label\npending imports as pending.\n\nStay quiet when there are no new subscribers and nothing needs attention.\nAvoid repeating notifications about an unchanged blocker.\n\nWelcome emails for new imports are authorized. Do not send separate\nemails, newsletter campaigns or retroactive welcome emails."
+    },
+    {
+      "id": "trig_01NN32ausgb7UKzTKSmZ6QmZ",
+      "name": "Sync Cowork skills to dotfiles",
+      "cron_expression": "0 16 * * 1",
+      "run_once_at": null,
+      "enabled": true,
+      "model": "claude-opus-5",
+      "permission_mode": null,
+      "folders": [
+        "/Users/jinayoon/.dotfiles/ai/skills"
+      ],
+      "notifications": {
+        "channel": {
+          "push": true,
+          "email": false
+        }
+      },
+      "connectors": [
+        "Claude_Code_Remote",
+        "Context7",
+        "Deel_MCP",
+        "Figma",
+        "GitHub_Copilot_MCP",
+        "Gmail",
+        "Google_Calendar",
+        "Google_Drive",
+        "Shopify",
+        "Slack"
+      ],
+      "prompt": "Mirror Jina's custom Cowork skills AND her scheduled tasks into her dotfiles repo on the device \"jinas-macbook-pro-local\". This is a one-way export: her Cowork account is the live copy, the repo is a versioned mirror.\n\nTARGET: /Users/jinayoon/.dotfiles/ai/skills/ (a connected folder; it mounts at $HOME/mnt/skills for device_bash). Skill folders sit directly under it, one per skill.\n\nSTEP 1 - build the skills export in this cloud session.\nLocate the synced skills manifest by globbing /root/.claude/skills/synced/*/manifest.json - it sits inside a bucket subdirectory whose name is account- or install-specific, so never hardcode the path. If the glob matches more than one, use the most recently modified and note the ambiguity in the summary. Call that directory SYNCED_DIR.\nSelect skills where source == \"plugin\", EXCLUDING these two by name: pr-security-review, triage-vuln (stock templates, not hers). Everything else tagged plugin is in scope, including skills she authored since this task was created - do not hardcode the skill list. (Her skills each carry their own backingPluginId. As of 2026-11-11 the manifest contains no skills tagged \"custom\" at all; the only sources present are anthropic, anthropic-example and plugin. If a run finds ZERO skills in scope, treat that as a bug and report it loudly - never report it as a quiet \"nothing changed\".)\nFor each selected skill, the full folder is at SYNCED_DIR/<name>/ (SKILL.md plus any references/, assets/, scripts/ subdirs). Compute a sha256 for every file.\nIf /Users/jinayoon/.dotfiles/ai/skills/export-cowork-skills.py exists on the device, stage it and use it rather than reimplementing; it takes an output dir argument and writes a manifest.json with per-file sha256.\n\nSTEP 1B - build the scheduled-tasks export.\nCall list_triggers on the Claude Code Remote MCP server, paginating with next_cursor until has_more is false, so every task is captured - never hardcode the task list. Include disabled tasks. Pass include_completed=false so fired one-shots and send_later reminders stay out.\nWrite them to /Users/jinayoon/.dotfiles/ai/skills/.scheduled-tasks.json as a JSON object {\"exportedAt\": \"<YYYY-MM-DD>\", \"tasks\": [...]}, tasks sorted by name, indent 2.\nFor each task keep ONLY these fields, in this order: id, name, cron_expression, run_once_at, enabled, model, permission_mode (from derived_state), folders (from derived_state), notifications, connectors (the NAMES from mcp_connections, sorted - not the connector_uuids), prompt (from derived_state.prompt).\nDeliberately OMIT next_run_at, last_run, last_fired_at, updated_at, created_at and the full mcp_connections objects. Those change on every run and would make the file churn in git for no reason. The export must be byte-identical between two runs where nothing actually changed, apart from exportedAt - so if the only difference from the on-disk file is exportedAt, treat the file as UNCHANGED and do not write it.\nThis is a backup, not a restore path: there is no import-from-file. Note that once in the summary only if she asks.\n\nSTEP 2 - work out what changed.\nStage /Users/jinayoon/.dotfiles/ai/skills/.cowork-export.json from the device (it holds the previous run's per-file sha256). Also hash the files currently on disk there via device_bash, because she may have edited the repo copy by hand. Write a file only if it is new, or its on-disk hash differs from the freshly exported version. Skip unchanged files silently.\nCompare .scheduled-tasks.json the same way: diff the newly built JSON against the on-disk one, ignoring exportedAt.\n\nSTEP 3 - write.\ndevice_bash mkdir -p any needed subdirectories first. Then one SendUserFile call with all changed files (pass the array), then one device_commit_files call mapping each returned fileUuid to its /Users/jinayoon/.dotfiles/ai/skills/... path. Include .scheduled-tasks.json in the same SendUserFile and device_commit_files calls when it changed. Also write the refreshed skills manifest to .cowork-export.json. Then verify by hashing the written skill files on the device against the manifest.\nNEVER delete anything, and never touch a file that is not part of the export - my-sprint-update/evals/ and .gitkeep are hers. If a file exists on disk but is absent from the new manifest (a skill she deleted in Cowork), do NOT remove it; just list it in the summary as a possible stray. .scheduled-tasks.json is part of the export and is never a stray.\n\nSTEP 4 - commit if possible.\nCheck whether the git repo root is reachable from device_bash (git -C $HOME/mnt/skills rev-parse --show-toplevel). As of setup only ai/skills was connected, so .git was NOT reachable and committing was impossible - in that case write the files, then tell her they are staged in the working tree and she needs to commit. If the repo root IS reachable, git add the skills paths and commit locally with a message naming the changed skills and their Cowork updatedAt dates, plus the scheduled tasks that changed. NEVER push, and never touch any branch other than the current one.\n\nSTEP 5 - report.\nSummarise: which skills changed and why, which were skipped as unchanged, which scheduled tasks were added/removed/edited since the last export (diff by task name and by prompt), any strays, and whether a commit happened. If nothing changed at all, say so in one line.\n\nIf the device is unreachable (desktop app closed), or no folder is attached to this task so $HOME/mnt/skills does not exist, do not retry or work around it - report that the run was skipped, say which of the two it was, and stop. The next run catches up.\nJina's preferences: lead with the answer, keep it short, no preamble. Mark anything unverified inline as [unverified]. Do not create GitHub comments, Slack messages, or edits to shared docs."
+    },
+    {
+      "id": "trig_01MYxd8ei28tSnQS9a1Jygeq",
+      "name": "Weekly work log update",
+      "cron_expression": "0 23 * * 5",
+      "run_once_at": null,
+      "enabled": true,
+      "model": "claude-opus-5",
+      "permission_mode": null,
+      "folders": [],
+      "notifications": {
+        "channel": {
+          "push": false,
+          "email": false
+        }
+      },
+      "connectors": [
+        "Claude_Code_Remote",
+        "Context7",
+        "Deel_MCP",
+        "Figma",
+        "GitHub_Copilot_MCP",
+        "Gmail",
+        "Google_Calendar",
+        "Google_Drive",
+        "Shopify",
+        "Slack"
+      ],
+      "prompt": "Update Jina Yoon's living work log for the week that is ending today (Friday). This is a standalone weekly task – you have no memory of any previous run.\n\n## The file\n\n`~/misc/work-log.md` on Jina's Mac, reachable through the device bridge. In `device_bash` its path is `$HOME/mnt/misc/work-log.md`. If the folder isn't connected, try `device_list_dir` on `/Users/jinayoon/misc` first, and if you still can't reach it, do all the work anyway and print the full entry and updated bullets in your run output so nothing is lost – say clearly at the top that the file could not be written.\n\nThe file has two sections:\n\n- `## Log` – append-only, newest entry first, one entry per sprint week. Never edit or delete existing entries.\n- `## Bullets` – resume-style bullets grouped by theme, rewritten from scratch each week using the whole log.\n\nRead the existing file before changing anything.\n\n## Naming constraint\n\nThe word \"resume\" must not appear anywhere in `work-log.md`. Call it a work log. (You may use the word freely in your run output.)\n\n## Step 1 – work out the window\n\nToday is Friday. The sprint week is this Monday through today. Get today's date with `date` in bash; compute the Monday. Only count work in that window.\n\n## Step 2 – gather evidence (read-only – never post, comment, or edit anything on GitHub or Slack)\n\nJina is `jina-yoon` on GitHub, Jina Yoon on Slack. Her work is editorial: PostHog's \"build mode\" newsletter (formerly Product for Engineers), blog posts, and docs/handbook pages. Teammates: Ian Vanagas (editorial lead), Andy Vandervell (marketing lead), Liam Graham (social), Natalia Amorim (content).\n\nThese specific methods are verified to work in this environment – use them, and don't waste time on the alternatives noted as broken:\n\n1. **Pull requests** – `mcp__GitHub_Copilot_MCP__search_pull_requests` accepts classic GitHub search syntax:\n   `involves:jina-yoon repo:PostHog/posthog.com repo:PostHog/marketing updated:>=<monday>`\n   Request only the fields you need (number, title, state, html_url, repository_url, updated_at). For anything that looks significant, open it with `pull_request_read` to see whether it merged and what it actually was.\n\n2. **Issues** – `search_issues` is semantic-only here and does NOT understand `involves:`; it returns nothing. Instead use `mcp__GitHub_Copilot_MCP__list_issues` with `owner: PostHog`, `repo: marketing` (then again with `repo: company-internal`), `since: <monday>T00:00:00Z`, `orderBy: UPDATED_AT`, `direction: DESC`, and filter the results yourself for ones where `user.login` or `assignees` is `jina-yoon`.\n\n3. **Slack** – `mcp__Slack__slack_read_channel` on `C09GU689J1X` (#team-editorial). Do NOT pass the `oldest` parameter – it returns wrong results. Page from newest using `cursor` and stop once you're past Monday. Jina's own messages are the strongest signal (drafts shared, things shipped, issues filed, OOO notes).\n\n4. **Sprint issue** – `PostHog/company-internal` has weekly issues titled `[SPRINT] Editorial {start} - {end} {year}`. Find this week's, and read Jina's own comment on it if she posted one: it states what she planned, which is useful for judging what actually landed. Use `list_issues` on `company-internal` to locate it.\n\n`gh` CLI is not installed. Gist writes and repo creation are blocked. Use the MCP tools only.\n\n## Step 3 – append the log entry\n\nPrepend a new entry directly under the `<!-- New entries go directly below this line, newest first. -->` comment:\n\n```\n### Aug 17–21, 2026\n\n- shipped build mode #47 \"This post will save you tokens\" – wrote, ran editorial review, scheduled ([posthog.com#19578](url))\n- filed art request for context engineering hero image ([marketing#246](url))\n```\n\nRules for the log:\n- Every bullet carries a real link. Prefer full GitHub URLs.\n- Be specific and concrete – counts, issue numbers, titles. Specifics are the whole point of the log; they're what a later run needs.\n- Include the small stuff too. The log is not a highlight reel, it's the record.\n- Anything you believe but can't verify from a link: mark it `[unverified]` inline. Never invent a plausible detail to fill a gap – write `TODO` instead.\n- Note outcomes that arrived this week for *earlier* work (a post going live, a number someone reported in Slack), and link them, even if the work itself was weeks ago.\n- If the week is genuinely empty (holiday, OOO), write a one-line entry saying so rather than padding it.\n\n## Step 4 – rewrite the bullets\n\nRewrite the whole `## Bullets` section from the full log, not just this week's entry. Group by theme – e.g. Newsletter, Blog and long-form, Tooling and process, Cross-team. Under each, bullets that read as accomplishments: what she owns, what she built or changed, what happened as a result. Concrete numbers where the log supports them, and keep the link for anything specific.\n\nKeep them honest. A bullet is only as strong as the log evidence under it – no inflation, no \"spearheaded\". If the evidence only supports a modest claim, make the modest claim. Carry `[unverified]` markers up into a bullet if that's what the evidence says.\n\nStyle for both sections: clean prose, en dashes (–) never em dashes (—), no marketing language.\n\n## Step 5 – write and report\n\nWrite the updated file back with `device_bash`. Then in your run output, briefly: how many log bullets you added, which bullets changed and why, and anything you couldn't verify and want Jina to confirm. Keep it short – she's reading this later, not watching it happen.\n\nDo not post anything anywhere. The only write in this whole task is `work-log.md` on her Mac."
+    }
+  ]
+}
