@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Transcript → Markdown",
+  "version": "1.0.0",
+  "description": "Pulls the existing transcript from a YouTube video and opens it as clean, readable Markdown in a new tab.",
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Pull transcript as Markdown" }
+}

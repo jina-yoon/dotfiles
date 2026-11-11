@@ -6,24 +6,20 @@ script — the [holman](https://github.com/holman/dotfiles) /
 
 ## Install
 
-This repo is **private**, so a fresh Mac needs `gh` authenticated first
-(`brew install gh && gh auth login`). Then:
+On a fresh Mac:
 
 ```sh
-gh repo clone jina-yoon/dotfiles ~/.dotfiles && ~/.dotfiles/install.sh
+curl -fsSL https://raw.githubusercontent.com/jina-yoon/dotfiles/main/install.sh | bash
 ```
 
 Or step by step:
 
 ```sh
-gh repo clone jina-yoon/dotfiles ~/.dotfiles
+git clone https://github.com/jina-yoon/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 script/bootstrap
 script/install
 ```
-
-(If you ever make the repo public, the usual one-liner works:
-`curl -fsSL https://raw.githubusercontent.com/jina-yoon/dotfiles/main/install.sh | bash`)
 
 ## How it works
 
@@ -165,6 +161,16 @@ so the filtering is never silent.
 For *installed* plugins rather than authored skills, the built-ins already
 cover it: `claude plugin list --json`, `claude plugin details <name>` (skills
 plus token cost), and `claude plugin validate <dir> --strict`.
+
+## Chrome extensions
+
+`chrome/` holds unpacked Chrome extensions I've written. Chrome can't install
+these from a script, so load each one by hand: `chrome://extensions` → turn on
+**Developer mode** → **Load unpacked** → pick the folder.
+
+| Extension | What it does |
+| --- | --- |
+| [`chrome/transcriptor`](chrome/transcriptor) | Pulls a YouTube video's existing transcript and opens it as clean Markdown in a new tab. |
 
 ## Local overrides
 

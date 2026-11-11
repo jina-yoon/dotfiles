@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 #
-# Installer for a fresh Mac. The repo is private, so cloning needs an
-# authenticated `gh` (or git credentials for github.com):
+# Installer for a fresh Mac:
 #
-#   gh repo clone jina-yoon/dotfiles ~/.dotfiles && ~/.dotfiles/install.sh
+#   curl -fsSL https://raw.githubusercontent.com/jina-yoon/dotfiles/main/install.sh | bash
 
 set -e
 
