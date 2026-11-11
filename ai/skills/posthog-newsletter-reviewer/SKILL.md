@@ -14,6 +14,8 @@ description: >-
   evaluates "Further Reading" links. Do NOT use this for writing a newsletter
   from scratch, or for finding or curating Further Reading links (that's the
   posthog-reading-finder skill).
+metadata:
+  cowork: true
 ---
 
 # PostHog Newsletter Reviewer

@@ -29,3 +29,10 @@ unset config_files
 
 # Machine-specific overrides that shouldn't be committed.
 [ -f ~/.localrc ] && source ~/.localrc
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+fpath=(/Users/jinayoon/.docker/completions $fpath)
+autoload -Uz compinit
+(( ${+_comps[docker]} )) || compinit
+# End of Docker CLI completions
+
+export SSH_AUTH_SOCK=/Users/jinayoon/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh

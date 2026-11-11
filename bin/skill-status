@@ -142,17 +142,93 @@ def parse_frontmatter(text):
     return out
 
 
+def scalar_value(first, rest):
+    """Decode one top-level YAML scalar to its string value.
+
+    `first` is what follows `key:` on its own line, `rest` the indented
+    continuation lines. Covers the forms that turn up in SKILL.md: plain,
+    single- and double-quoted (each possibly wrapped), and block scalars.
+    """
+    m = re.match(r"^([>|])([+-]?)$", first)
+    if m:
+        style, chomp = m.groups()
+        body = [ln.strip() for ln in rest]
+        if style == "|":
+            value = "\n".join(body)
+        else:
+            # Folding: a line break becomes a space, a blank line a newline.
+            value, prev_blank = "", True
+            for ln in body:
+                if ln == "":
+                    value += "\n"
+                    prev_blank = True
+                else:
+                    value += ("" if prev_blank else " ") + ln
+                    prev_blank = False
+        value = value.rstrip("\n")
+        return value if chomp == "-" else value + "\n"
+
+    joined = " ".join([first] + [ln.strip() for ln in rest if ln.strip()])
+    if len(joined) >= 2 and joined[0] == joined[-1] == "'":
+        return joined[1:-1].replace("''", "'")
+    if len(joined) >= 2 and joined[0] == joined[-1] == '"':
+        try:
+            return json.loads(joined)
+        except ValueError:
+            return joined[1:-1]
+    return joined
+
+
+def canonical_frontmatter(fm):
+    """Rewrite frontmatter lines so equal values compare equal.
+
+    Cowork re-serialises frontmatter on upload — a wrapped `>-` description
+    comes back as one quoted line — so comparing raw text reports drift for
+    a skill whose content never changed. Top-level scalars are decoded and
+    re-emitted as `key: <json string>`; nested mappings like `metadata:` are
+    kept line by line with their indentation evened out.
+    """
+    out, i = [], 0
+    while i < len(fm):
+        line = fm[i]
+        m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if not m or line[0].isspace():
+            out.append(line.strip())
+            i += 1
+            continue
+        key, first = m.group(1), m.group(2).strip()
+        j = i + 1
+        while j < len(fm) and (fm[j] == "" or fm[j][0].isspace()):
+            j += 1
+        rest = fm[i + 1:j]
+        while rest and rest[-1] == "":
+            rest.pop()
+        nested = (first == "" and rest
+                  and re.match(r"^\s+[A-Za-z0-9_-]+:(\s|$)", rest[0]))
+        if nested:
+            out.append(f"{key}:")
+            out.extend("  " + ln.strip() for ln in rest if ln.strip())
+        else:
+            out.append(f"{key}: {json.dumps(scalar_value(first, rest), ensure_ascii=False)}")
+        i = j
+    return out
+
+
 def normalize(text):
     """Canonical form for content comparison.
 
     Trailing whitespace and blank-line runs differ between an editor and a
-    round-trip through Cowork's store without the skill actually changing.
-    Everything else — frontmatter included — is significant: a changed
-    description changes when the skill fires.
+    round-trip through Cowork's store without the skill actually changing,
+    and so does how frontmatter values are quoted and wrapped. What the
+    values say is significant: a changed description changes when the skill
+    fires.
     """
     if text is None:
         return None
     lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").split("\n")]
+    if lines and lines[0] == "---" and "---" in lines[1:]:
+        end = lines.index("---", 1)
+        lines = ["---"] + canonical_frontmatter(lines[1:end]) + lines[end:]
     out, blank = [], False
     for ln in lines:
         if ln == "":

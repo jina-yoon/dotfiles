@@ -31,3 +31,9 @@
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
+[gpg]
+	format = ssh
+[user]
+	signingkey = /Users/jinayoon/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/PublicKeys/92b987f1412ef9bb7502956c39ebb621.pub
+[commit]
+	gpgsign = true

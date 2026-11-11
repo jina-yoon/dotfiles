@@ -1,6 +1,8 @@
 ---
 name: newsletter-art-request
 description: "File a PostHog art request issue in PostHog/marketing for a build mode newsletter, either a hero image or a polish pass on infographics, and upload any Claude-generated SVGs into the Newsletter Graphics Figma file. Use this whenever Jina needs artwork, a hero image, a header image, a polish pass, infographic cleanup, or design help for a newsletter or blog post, including when she says \"file an art request\", \"ask design for a hero image\", \"I need art for this issue\", \"get the graphics polished\", \"submit this to the art board\", or just links a newsletter Google Doc and says she needs images. Also use it when she wants to add newsletter SVGs to Figma, even if no GitHub issue is involved."
+metadata:
+  cowork: true
 ---
 
 # Newsletter art requests

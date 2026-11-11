@@ -1,6 +1,8 @@
 ---
 name: newsletter-headlines
 description: Generate title and subtitle options for an issue of PostHog's newsletter (build mode, formerly Product for Engineers), calibrated against every past issue and PostHog's own title guidelines. Use this whenever someone is naming, retitling, or workshopping a newsletter issue — including when they paste a few headline ideas and ask "which of these is best", "any better options?", "help me title this", "what should I call this issue", or share a draft or pitch and ask for a headline, subject line, or subtitle. Also use when they're unhappy with a working title, want to A/B a subject line for the email, or want to check a title against what's already been published. Trigger on this even if they don't say the word "newsletter" — if the piece is for PostHog's newsletter or blog and the ask is about the title, use this skill.
+metadata:
+  cowork: true
 ---
 
 # Newsletter headlines

@@ -10,6 +10,8 @@ description: >-
   whenever Jina is gathering further-reading links, doing newsletter link curation,
   looking for "good articles/projects/tweets" to include, or asks what's worth
   linking since the last issue — even if she doesn't say "further reading" by name.
+metadata:
+  cowork: true
 ---
 
 # Further Reading Finder

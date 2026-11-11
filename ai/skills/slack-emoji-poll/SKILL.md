@@ -1,6 +1,8 @@
 ---
 name: slack-emoji-poll
 description: "Post a numbered emoji-vote poll to Slack and auto-add the :one:–:nine: reactions so people can just click."
+metadata:
+  cowork: true
 ---
 
 # Slack emoji poll

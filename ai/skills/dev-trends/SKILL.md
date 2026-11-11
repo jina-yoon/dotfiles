@@ -11,6 +11,8 @@ description: >-
   debate — including "what's new in AI tooling this week" or "am I behind on X?".
   This is trend awareness, not link curation: if she's assembling Further Reading
   links for the newsletter, use further-reading-finder instead.
+metadata:
+  cowork: true
 ---
 
 # Dev Trends
@@ -72,10 +74,23 @@ walk her through it rather than silently degrading:
 Read `references/x-recipes.md` for the exact URLs, queries, and the account
 starter list. The shape of a run:
 
-### 1. Set the window
+### 1. Set the window — and pin down the actual question
 
 Default to the **last 7 days**. If Jina names a window or a topic, use that. State
 the window at the top of the output.
+
+For a topic request, write down in one sentence what would and would not count as
+an answer *before* you search, then test every finding against it before you
+write. Adjacent-but-different topics dominate search results and will quietly take
+over a brief: "multi-agent systems" (agents coordinating with agents) is not
+"multiplayer AI" (people collaborating with each other through agents); "AI code
+review" is not "how teams review each other's agent output." The
+highest-engagement result is often the off-target one, because the adjacent topic
+is usually the bigger one. If your best material answers a neighbouring question,
+say so explicitly and report it as context — never as the answer.
+
+Seven days is right for "what's moving." For a specific or niche topic, widen to
+30–60 days and state the window — a week of a narrow topic is mostly noise.
 
 ### 2. Open one tab and keep it
 
@@ -124,6 +139,33 @@ captures the counts:
 
 Lead with the argument-shaped items. That's the whole point of the brief.
 
+### 4b. Attribute to the post, not the person
+
+Every opinion you quote links to that specific post —
+`x.com/<handle>/status/<id>`. **Never link a bare profile.** A profile link is not
+a citation: Jina can't find the quote, and it reads as sourced when it isn't.
+
+So this is a harvesting rule before it's a writing rule. The status URL is the
+field you never trim. When a dump comes back truncated, re-dump in slices
+(`Object.values(window.__h).slice(n)`) or cut the post text and the engagement
+counts — keep the handle and the URL. If you reach the end of a run holding a
+quote whose URL you don't have, spend one `from:<handle> since:<date>` query to
+recover it, or cut the quote. Saying "unsourced" is fine; a profile link is not.
+
+Two checks before a quote is safe to use:
+
+- **Read the author's own replies.** A flat one-line take is often qualified or
+  walked back by the author within the hour, and quoting the opener alone can
+  invert their real position. Any post you're about to build a "disagreement"
+  section on gets a self-reply check first.
+- **Check who's selling something.** On any tooling topic, many of the loudest
+  voices ship a product in that exact category, sometimes launched the same week
+  as the post. That doesn't disqualify them, but it changes what the post is
+  evidence of. Flag it inline — "(ships a competing harness)" — rather than
+  passing vendor positioning off as practitioner testimony. If *every*
+  enthusiastic voice on a theme has a horse in the race, that uniformity is
+  itself the finding, and worth saying out loud.
+
 ### 5. Cross-check off-platform
 
 X tells you what people are *saying*; these tell you whether it's real. Use
@@ -132,10 +174,28 @@ X tells you what people are *saying*; these tell you whether it's real. Use
 - **Hacker News** via the Algolia API for the same window (recipe in references).
   A topic hot on both X and HN is confirmed; hot on X only is often a bubble.
 - **GitHub Trending** for the weekly view. If a tool is being talked about, check
-  whether the stars back it up.
+  whether the stars back it up. Sanity-check what comes back — if the "weekly"
+  list is topped by freeCodeCamp, TensorFlow and Vue, you got a stale cache.
+  Drop it and say so rather than reporting it.
 
 Also use these to find the *underlying artifact* — the blog post, repo, or paper a
-thread is reacting to. Link the artifact, not the thread, wherever one exists.
+thread is reacting to. Link the artifact wherever one exists.
+
+**Always pair an HN-sourced item with its HN discussion link.** Any time a story
+reached the brief through Hacker News — or you cite its points/comments — give
+both links: the artifact itself *and* the HN thread at
+`https://news.ycombinator.com/item?id=<objectID>`. The discussion is often the
+better read, and Jina needs it to check what commenters actually objected to.
+Capture the `objectID` alongside title, URL, points and comments on every
+Algolia fetch so it's never missing at write-up time. Format it as
+`[artifact](url) ([HN](https://news.ycombinator.com/item?id=<objectID>), 895 pts/770 comments)`.
+For Ask HN / Tell HN posts with no external URL, the HN link *is* the artifact.
+If a fetch ever gives you a comment ID rather than a story ID, resolve it to the
+story before linking.
+
+When a claim rests on a study or a number, go get the study. "A Harvard study
+found…" inside someone's manifesto is a claim about a study, not a source. Either
+land on the paper and quote its real figures, or mark the number `[unverified]`.
 
 ### 6. Be a good citizen
 
@@ -151,26 +211,28 @@ by how much movement there is behind them — not by volume.
 
 ```
 ## <Theme, stated as the actual claim or shift>
-**Signal:** where you saw it – handles, HN, GitHub, and roughly how much
+**Signal:** where you saw it – handles linked to the specific posts, HN stories linked to their discussion pages, GitHub, and roughly how much
 **What's happening:** 2–4 sentences. Specific nouns. Who's saying what.
 **The disagreement:** if there is one, both sides in a sentence each. Skip if genuinely one-sided.
-**Worth reading:** [artifact](url) – one line on why
+**Worth reading:** [artifact](url) ([HN](https://news.ycombinator.com/item?id=<objectID>) if it came via HN) – one line on why
 ```
 
 Then two short closing sections:
 
 - **Quiet signals** — three or four one-liners on things that are small now but
-  moving. Low bar for inclusion; label them as speculative.
+  moving. Low bar for inclusion; label them as speculative. HN-sourced ones get
+  their discussion link too.
 - **Cooling off** — anything the timeline has visibly lost interest in since the
   last run, if you can tell.
 
-Finish with a one-line note on which sources you actually reached, and flag
-anything that failed.
+Finish with a one-line note on which sources you actually reached, flag anything
+that failed, and list any quote you had to leave unsourced so Jina knows not to
+use it.
 
 Write in PostHog's voice: short sentences, specific nouns, no throat-clearing, no
 "the developer community is buzzing about." Use en-dashes with spaces ( – ), not
 em-dashes. Name people by handle when attributing an opinion — Jina needs to know
-whose take it is.
+whose take it is — and link that handle to the post you're quoting.
 
 ## When things go wrong
 
@@ -183,6 +245,18 @@ whose take it is.
   topic. Halve it once and retry, then move on.
 - **Rate limiting** → wait and reduce depth, as above. Report a shallower run
   honestly rather than a thin one silently.
+- **A harvester dump comes back truncated** → re-dump in slices rather than
+  shortening the fields. If you must shorten, cut post text first and the URL
+  last. Never let truncation be the reason a quote loses its link.
+- **`f=top` results reshuffle between page loads** → Top ranking is not stable, so
+  a post you saw on the first pass may not render on a second. Capture handle,
+  URL, text and engagement on the first pass; don't count on re-finding it.
+- **`news.ycombinator.com` returns 429** → don't retry in a loop. Read comment
+  bodies through the Algolia API instead
+  (`hn.algolia.com/api/v1/search?tags=comment,story_<id>`), and note in the
+  closing line that you have usernames but not per-comment vote counts. Still
+  include the `news.ycombinator.com/item?id=<id>` discussion link in the brief —
+  a 429 for you doesn't mean Jina can't open it.
 - **A `WebFetch` returns `PROVENANCE_REQUIRED`** → the fetch needs Jina to approve
   a permission prompt, and she may be away. Don't retry in a loop and don't
   substitute a guess. Fall back to what the HN API already gave you (titles,
@@ -191,3 +265,4 @@ whose take it is.
 - **A `computer` or `javascript_tool` call times out at 45s** → the page is mid-
   navigation or a script is still running. Wait, then re-issue the single call on
   its own rather than re-running the whole batch.
+
