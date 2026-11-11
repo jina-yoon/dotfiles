@@ -30,7 +30,11 @@ scraping the panel, `background.js` (injected into the page's `MAIN` world):
 3. Requests that only match the current video id are used, so a pre-roll ad's
    captions are never mistaken for the video's.
 
-The transcript-panel scrape remains as a fallback for older page layouts.
+If that returns nothing (on some videos, notably auto-dubbed ones, every
+caption request comes back empty), it falls back to opening YouTube's
+transcript panel itself and reading it. Both the old panel and the redesigned
+one (`transcript-segment-view-model`, which can open on a Chapters tab) are
+supported.
 
 ## Install (load unpacked)
 

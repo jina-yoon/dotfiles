@@ -132,11 +132,47 @@ async function extractTranscript() {
       pr.captions.playerCaptionsTracklistRenderer.captionTracks) ||
     [];
 
-  // The "spoken language" of the video: the auto-generated (asr) track's
-  // language, falling back to the first available track.
-  const pickLang = (tracks) => {
-    const asr = tracks.find((t) => t.kind === "asr");
-    return (asr && asr.languageCode) || (tracks[0] && tracks[0].languageCode) || "en";
+  // The "spoken language" of the video. Auto-dubbed videos list an
+  // auto-generated (asr) track for every dubbed language, sorted alphabetically,
+  // so "the first asr track" is often Arabic rather than the original. Order:
+  //   1. the language of the original (non-dubbed) audio track
+  //   2. the only asr track, when there's just one (the normal, non-dubbed case)
+  //   3. the player's default caption track for the default audio track
+  //   4. the first asr track, then the first track of any kind
+  const pickLang = (pr, tracks) => {
+    const codes = tracks.map((t) => t.languageCode).filter(Boolean);
+    const match = (lang) => {
+      if (!lang) return null;
+      lang = lang.toLowerCase();
+      const base = lang.split("-")[0];
+      return (
+        codes.find((c) => c.toLowerCase() === lang) ||
+        codes.find((c) => c.toLowerCase().split("-")[0] === base) ||
+        null
+      );
+    };
+
+    // 1. Original audio track, e.g. { id: "en-US.4", audioIsDefault: true } with
+    //    no isAutoDubbed flag, while the dubs carry isAutoDubbed: true.
+    const formats = (pr && pr.streamingData && pr.streamingData.adaptiveFormats) || [];
+    const audio = formats.map((f) => f.audioTrack).filter(Boolean);
+    const original =
+      audio.find((a) => !a.isAutoDubbed && a.audioIsDefault) || audio.find((a) => !a.isAutoDubbed);
+    const fromAudio = original && match(String(original.id || "").split(".")[0]);
+    if (fromAudio) return fromAudio;
+
+    // 2. Exactly one asr track.
+    const asrTracks = tracks.filter((t) => t.kind === "asr");
+    if (asrTracks.length === 1 && asrTracks[0].languageCode) return asrTracks[0].languageCode;
+
+    // 3. Player's default caption track.
+    const r = pr && pr.captions && pr.captions.playerCaptionsTracklistRenderer;
+    const at = r && r.audioTracks && r.audioTracks[r.defaultAudioTrackIndex || 0];
+    const def = at && typeof at.defaultCaptionTrackIndex === "number" && tracks[at.defaultCaptionTrackIndex];
+    if (def && def.languageCode) return def.languageCode;
+
+    // 4. Old behaviour.
+    return (asrTracks[0] && asrTracks[0].languageCode) || (tracks[0] && tracks[0].languageCode) || "en";
   };
 
   const fetchJson3 = async (url) => {
@@ -159,7 +195,7 @@ async function extractTranscript() {
   async function viaCaptions(pr) {
     const tracks = captionTracksOf(pr);
     if (!tracks.length) return null;
-    const target = pickLang(tracks);
+    const target = pickLang(pr, tracks);
     const vid =
       (pr && pr.videoDetails && pr.videoDetails.videoId) ||
       new URLSearchParams(location.search).get("v");
@@ -222,10 +258,13 @@ async function extractTranscript() {
       // request (which carries the pot). A track already cached in this session
       // won't refetch, so cycle through several candidates and, if none fires,
       // bounce the whole module to clear its cache and retry.
+      // Capped: auto-dubbed videos list ~20 tracks, and on those the player's
+      // requests often carry no pot at all, so cycling them all just delays
+      // the transcript-panel fallback by a minute.
       const candidates = [
         ...tl.filter((t) => t.languageCode && t.languageCode !== target),
         ...tl,
-      ];
+      ].slice(0, 3);
       const tryForce = async () => {
         for (let c = 0; c < candidates.length && !captured; c++) {
           try {
@@ -249,12 +288,30 @@ async function extractTranscript() {
 
       if (!captured) return null;
 
-      const u = new URL(captured, location.origin); // player may request a relative URL
-      u.searchParams.set("lang", target);
-      u.searchParams.delete("tlang");
-      u.searchParams.set("fmt", "json3");
-      const json = await fetchJson3(u.toString());
-      const items = json3ToItems(json);
+      // Build the request from the *target track's own* baseUrl, borrowing only
+      // what the captured request adds on top (pot + client params). Swapping
+      // `lang` on the captured URL isn't enough: tracks can differ in other
+      // params too. On auto-dubbed videos the original-language track is
+      // `variant=gemini` while the dubbed tracks are `variant=timing-optimized`,
+      // and asking for the wrong variant returns an empty 200.
+      const cap = new URL(captured, location.origin); // player may request a relative URL
+      for (const tr of ordered) {
+        const u = new URL(tr.baseUrl, location.origin);
+        for (const [k, v] of cap.searchParams) {
+          if (!u.searchParams.has(k) && k !== "tlang") u.searchParams.set(k, v);
+        }
+        u.searchParams.set("fmt", "json3");
+        const items = json3ToItems(await fetchJson3(u.toString()));
+        if (items.length) return items;
+      }
+
+      // Last resort: the old approach (captured URL retargeted by lang/kind).
+      cap.searchParams.set("lang", target);
+      cap.searchParams.delete("tlang");
+      if (tracks.some((t) => t.languageCode === target && t.kind !== "asr")) cap.searchParams.delete("kind");
+      else cap.searchParams.set("kind", "asr");
+      cap.searchParams.set("fmt", "json3");
+      const items = json3ToItems(await fetchJson3(cap.toString()));
       return items.length ? items : null;
     } finally {
       window.fetch = origFetch;
@@ -270,54 +327,121 @@ async function extractTranscript() {
   // --- Strategy B: scrape the transcript panel DOM (fallback) -----------
   const SEG = "ytd-transcript-segment-renderer";
   const HEADER = "ytd-transcript-section-header-renderer";
-  const getSegs = () => document.querySelectorAll(SEG);
+  // YouTube's redesigned ("modern") transcript panel renders each line as a
+  // <transcript-segment-view-model> instead of the old segment renderer.
+  const MODERN_SEG = "transcript-segment-view-model";
+  const getSegs = () => document.querySelectorAll(SEG + ", " + MODERN_SEG);
+
+  // Opens YouTube's transcript panel. The layout keeps changing (the "modern"
+  // panel lives inside a combined Chapters/Transcript timeline panel and can
+  // open on the Chapters tab), so try several approaches in turn and stop as
+  // soon as transcript lines appear. Each attempt is noted in panelLog, which
+  // goes into the error message if everything fails.
+  const panelLog = [];
+  const visible = (el) => !!el && el.getClientRects().length > 0;
+  const textOf = (el) =>
+    ((el.getAttribute && el.getAttribute("aria-label")) || "") + " " + (el.textContent || "");
+
+  const waitSegs = async (ms) => {
+    for (let t = 0; t < ms && getSegs().length === 0; t += 200) await sleep(200);
+    return getSegs().length > 0;
+  };
+
+  // In the combined timeline panel, switch to the "Transcript" tab.
+  const clickTranscriptTab = () => {
+    const panels = document.querySelectorAll("ytd-engagement-panel-section-list-renderer");
+    for (const panel of panels) {
+      if (!visible(panel)) continue;
+      const tabs = panel.querySelectorAll(
+        '[role="tab"], button, yt-tab-shape, chip-shape, yt-chip-cloud-chip-renderer'
+      );
+      for (const tab of tabs) {
+        if (/^\s*transcript\s*$/i.test(tab.textContent || "") && visible(tab)) {
+          tab.click();
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const expandDescription = async () => {
+    const expand = document.querySelector(
+      "#description-inline-expander #expand, tp-yt-paper-button#expand, #expand"
+    );
+    if (expand && visible(expand)) {
+      expand.click();
+      await sleep(400);
+    }
+  };
+
+  // The "Show transcript" button in the description.
+  const findSectionButton = () => {
+    const section = document.querySelector("ytd-video-description-transcript-section-renderer");
+    if (!section) return null;
+    // Prefer a real <button>: clicking a wrapper element doesn't reach the
+    // button's own click handler.
+    for (const sel of ["button", "a", "yt-button-shape", "ytd-button-renderer"]) {
+      const els = Array.from(section.querySelectorAll(sel));
+      const hit = els.find((b) => /transcript/i.test(textOf(b))) || els[0];
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  // Any visible button/link mentioning "transcript" (e.g. in the ... menu).
+  const findAnyTranscriptButton = () => {
+    for (const sel of ["button", "a", "tp-yt-paper-item", "ytd-menu-service-item-renderer", "yt-button-shape", "ytd-button-renderer"]) {
+      const hit = Array.from(document.querySelectorAll(sel)).find(
+        (b) => visible(b) && /transcript/i.test(textOf(b))
+      );
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  async function openTranscriptPanel() {
+    // 1. Description's "Show transcript" button.
+    await expandDescription();
+    const btn = findSectionButton();
+    if (btn) {
+      btn.click();
+      panelLog.push("clicked description button");
+      if (await waitSegs(3000)) return;
+      if (clickTranscriptTab()) panelLog.push("clicked Transcript tab");
+      if (await waitSegs(4000)) return;
+    } else panelLog.push("no description button");
+
+    // 2. Force the transcript engagement panel open directly.
+    const panels = Array.from(
+      document.querySelectorAll("ytd-engagement-panel-section-list-renderer")
+    ).filter((p) => /transcript|timeline/i.test(p.getAttribute("target-id") || ""));
+    for (const p of panels) {
+      p.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED");
+      panelLog.push("expanded panel " + p.getAttribute("target-id"));
+    }
+    if (panels.length) {
+      if (await waitSegs(2500)) return;
+      if (clickTranscriptTab()) panelLog.push("clicked Transcript tab");
+      if (await waitSegs(4000)) return;
+    }
+
+    // 3. Any other visible "transcript" control.
+    const other = findAnyTranscriptButton();
+    if (other) {
+      other.click();
+      panelLog.push("clicked other transcript control");
+      if (await waitSegs(2500)) return;
+      if (clickTranscriptTab()) panelLog.push("clicked Transcript tab");
+      await waitSegs(4000);
+    } else panelLog.push("no other transcript control");
+  }
 
   async function openAndScrapePanel() {
     if (getSegs().length === 0) {
       setMsg("Opening transcript…");
-
-      const findShowBtn = () => {
-        const direct = document.querySelector(
-          "ytd-video-description-transcript-section-renderer button, " +
-            "ytd-video-description-transcript-section-renderer ytd-button-renderer"
-        );
-        if (direct) return direct;
-        const byLabel = document.querySelector('button[aria-label*="transcript" i]');
-        if (byLabel && byLabel.offsetParent !== null) return byLabel;
-        const candidates = Array.from(
-          document.querySelectorAll("button, a, yt-button-shape, ytd-button-renderer")
-        );
-        return candidates.find((b) =>
-          ((b.getAttribute("aria-label") || "") + " " + (b.textContent || ""))
-            .toLowerCase()
-            .includes("transcript")
-        );
-      };
-
-      // Expand the description ("...more") so the transcript section renders.
-      for (let i = 0; i < 15 && getSegs().length === 0 && !findShowBtn(); i++) {
-        const expand = document.querySelector(
-          "#description-inline-expander #expand, tp-yt-paper-button#expand, #expand"
-        );
-        if (expand) {
-          expand.click();
-          await sleep(350);
-          break;
-        }
-        await sleep(200);
-      }
-
-      for (let i = 0; i < 30 && getSegs().length === 0; i++) {
-        const btn = findShowBtn();
-        if (btn) {
-          btn.click();
-          break;
-        }
-        await sleep(200);
-      }
-
+      await openTranscriptPanel();
       setMsg("Reading transcript…");
-      for (let i = 0; i < 50 && getSegs().length === 0; i++) await sleep(200);
     }
 
     const segEls = getSegs();
@@ -329,13 +453,61 @@ async function extractTranscript() {
       (segEls[0] && segEls[0].parentElement);
 
     const items = [];
+    // Modern segments look like:
+    //   <transcript-segment-view-model>
+    //     <div class="ytwTranscriptSegmentViewModelTimestamp">0:07</div>
+    //     <div class="ytwTranscriptSegmentViewModelTimestampA11yLabel">7 seconds</div>
+    //     <span role="text">All right, ...</span>
+    // Use those class names when present; otherwise fall back to reading the
+    // rendered text line by line (timestamp-looking line = time, screen-reader
+    // lines like "2 minutes, 5 seconds" dropped, the rest = caption text).
+    const TIME_RE = /^\d{1,2}(?::\d{2}){1,2}$/;
+    const A11Y_RE = /^(\d+\s+(hours?|minutes?|seconds?),?\s*)+$/i;
+    const pushModernSeg = (el) => {
+      const tsEl = el.querySelector(".ytwTranscriptSegmentViewModelTimestamp");
+      const txEl = el.querySelector('span[role="text"], .ytAttributedStringHost');
+      if (tsEl && txEl) {
+        const text = (txEl.textContent || "").replace(/\s+/g, " ").trim();
+        if (text) items.push({ type: "segment", t: (tsEl.textContent || "").trim(), text });
+        return;
+      }
+      const lines = (el.innerText || el.textContent || "")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const t = lines.find((l) => TIME_RE.test(l)) || "";
+      const text = lines
+        .filter((l) => !TIME_RE.test(l) && !A11Y_RE.test(l))
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (text) items.push({ type: "segment", t, text });
+    };
+
     const pushSeg = (el) => {
+      if (el.tagName.toLowerCase() === MODERN_SEG) return pushModernSeg(el);
       const t = (el.querySelector(".segment-timestamp")?.textContent || "").trim();
       const text = (el.querySelector(".segment-text")?.textContent || el.textContent || "")
         .trim()
         .replace(/\s+/g, " ");
       if (text) items.push({ type: "segment", t, text });
     };
+
+    // Modern panel: walk segments and chapter headings in page order.
+    if (document.querySelector(MODERN_SEG)) {
+      for (const el of document.querySelectorAll(MODERN_SEG + ", timeline-chapter-view-model")) {
+        if (el.tagName.toLowerCase() === MODERN_SEG) pushModernSeg(el);
+        else {
+          const h = (el.innerText || el.textContent || "")
+            .split("\n")
+            .map((l) => l.trim())
+            .filter((l) => l && !TIME_RE.test(l) && !A11Y_RE.test(l))[0];
+          if (h) items.push({ type: "header", text: h });
+        }
+      }
+      if (items.some((i) => i.type === "segment")) return items;
+      items.length = 0;
+    }
 
     if (container) {
       for (const el of container.children) {
@@ -385,7 +557,8 @@ async function extractTranscript() {
       return {
         error:
           "No transcript found for this video. It may not have captions available, " +
-          "or the page wasn't fully loaded — try again once the video has loaded.",
+          "or the page wasn't fully loaded — try again once the video has loaded." +
+          (panelLog.length ? " [debug: " + panelLog.join("; ") + "]" : ""),
       };
     }
 
