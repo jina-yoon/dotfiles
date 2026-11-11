@@ -1,15 +1,6 @@
 ---
 name: further-reading-finder
-description: >-
-  Scan Hacker News, Reddit, the PostHog blog, developer X/Twitter, and Slack
-  (#dev-ai, #devel-random, #industry-news) to find candidate links for the
-  "Further Reading" section of PostHog's Product for Engineers newsletter.
-  Returns an annotated shortlist of ~10-15 links that teach a technique, surface
-  a genuinely useful tool/project, or make a sharp argument for a product-engineer
-  audience — and hard-rejects funding rounds, launches, and company PR. Use this
-  whenever Jina is gathering further-reading links, doing newsletter link curation,
-  looking for "good articles/projects/tweets" to include, or asks what's worth
-  linking since the last issue — even if she doesn't say "further reading" by name.
+description: 'Scan Hacker News, Reddit, the PostHog blog, developer X/Twitter, and Slack (#dev-ai, #devel-random, #industry-news) to find candidate links for the "Further Reading" section of PostHog''s Product for Engineers newsletter. Returns an annotated shortlist of ~10-15 links that teach a technique, surface a genuinely useful tool/project, or make a sharp argument for a product-engineer audience — and hard-rejects funding rounds, launches, and company PR. Use this whenever Jina is gathering further-reading links, doing newsletter link curation, looking for "good articles/projects/tweets" to include, or asks what''s worth linking since the last issue — even if she doesn''t say "further reading" by name.'
 metadata:
   cowork: true
 ---

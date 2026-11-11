@@ -1,18 +1,7 @@
 ---
 name: my-sprint-update
-description: >
-  Draft the user's weekly editorial sprint comment for PostHog/company-internal
-  — close out the ending sprint (retro with evidence-based checkmarks) and plan
-  the week ahead. Use this whenever the user mentions the editorial sprint,
-  their sprint comment or sprint update, Friday sprint prep, closing out the
-  sprint/week, drafting their retro, or prepping for the Monday editorial
-  meeting — even if they just say "do my sprint prep" or "help me with my
-  sprint". Produces a draft for review; never posts to GitHub without explicit
-  approval.
-compatibility: Requires `gh` CLI authenticated with access to PostHog/company-internal,
-  and the Slack MCP tools (read-only use). Uses the Google Drive MCP tools for Google Docs
-  evidence when they're connected (they are in Cowork; usually not in Claude Code) – the
-  skill works without them, just with a blind spot.
+description: "Draft the user's weekly editorial sprint comment for PostHog/company-internal — close out the ending sprint (retro with evidence-based checkmarks) and plan the week ahead. Use this whenever the user mentions the editorial sprint, their sprint comment or sprint update, Friday sprint prep, closing out the sprint/week, drafting their retro, or prepping for the Monday editorial meeting — even if they just say \"do my sprint prep\" or \"help me with my sprint\". Produces a draft for review; never posts to GitHub without explicit approval.\n"
+compatibility: Requires `gh` CLI authenticated with access to PostHog/company-internal, and the Slack MCP tools (read-only use). Uses the Google Drive MCP tools for Google Docs evidence when they're connected (they are in Cowork; usually not in Claude Code) – the skill works without them, just with a blind spot.
 metadata:
   cowork: true
 ---

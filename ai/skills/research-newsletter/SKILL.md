@@ -1,8 +1,6 @@
 ---
 name: research-newsletter
-description: Research real, quotable, sourced examples for a Product for Engineers
-  newsletter from a notes file. Use when asked to substantiate a newsletter thesis
-  with evidence and links.
+description: Research real, quotable, sourced examples for a Product for Engineers newsletter from a notes file. Use when asked to substantiate a newsletter thesis with evidence and links.
 metadata:
   version: '5'
   cowork: true

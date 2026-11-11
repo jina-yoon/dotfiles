@@ -1,135 +1,124 @@
 {
-  "exportedAt": "2026-08-20T22:53:58.159579+00:00",
-  "sourceManifestLastUpdated": 1787265327494,
-  "skillCount": 6,
-  "skills": [
-    {
-      "name": "dev-trends",
-      "skillId": "skill_01HYDt3FGM7yP3Dgdj8jaouT",
-      "updatedAt": "2026-08-11T17:45:01.656122Z",
-      "description": "Read developer X/Twitter through Jina's own logged-in Chrome session and report what's actually moving in dev right now \u2014 the arguments people are having, the tools they're switching to, the things they've stopped talking about. Uses the Claude in Chrome browser tools against a curated List and a set of search queries, then cross-checks against Hacker News and GitHub Trending. Use whenever Jina asks what's trending, what she's missed, what dev X is talking about, what the discourse is on some topic, or wants a pulse-check on a specific tool or debate \u2014 including \"what's new in AI tooling this week\" or \"am I behind on X?\". This is trend awareness, not link curation: if she's assembling Further Reading links for the newsletter, use further-reading-finder instead.",
+  "exportedAt": "2026-11-11",
+  "files": {
+    "build-mode-crosspost/SKILL.md": "bc248b1098717c067b7dbd8288f2b84a5b5b3af8ee7fa3866683d0468ed84714",
+    "dev-trends/SKILL.md": "06f8a0ce955b521029350636c691df829786c08ab268c4682073f8cc43272368",
+    "dev-trends/references/x-recipes.md": "bdcc94b17e6f4ab3d8643cbf8b9387ce3542102bd6c283f07c8cbc71f3bf7aa9",
+    "further-reading-finder/SKILL.md": "32429a135bee5ee2a79bc859567f628e7beb8314e1b51e262da8d818aeda992b",
+    "further-reading-finder/references/sources.md": "a505d4387e35a0c5c7a6c8f1bfa6c81d26bdb9442483b88f11275c88554b291a",
+    "gdoc-to-blog-pr/SKILL.md": "0ab19b6aad389eb410f32cadd4ff03827630782e5572b6644a12805d8ce9653f",
+    "my-sprint-update/SKILL.md": "5178bb551bcbd029ba02a1bf7625a70a63fa980b8783462b3ddb3045ed6967d3",
+    "newsletter-art-request/SKILL.md": "d5181f896d3c0546eb6103caf467e0eb42a9dff07f821d58de8fe2e2b129cad0",
+    "newsletter-art-request/references/examples.md": "1e710288247b6eb9d9b327720d7b9ca013f87710953f6d340eb28e604b1f7127",
+    "newsletter-art-request/references/figma.md": "cbc1ad29cddfb7be56e971f3c04e4a55b64e697f7e19ac589539b140c0918e4e",
+    "newsletter-art-request/references/svg-discovery.md": "7caee70437fd69b73907ede24cb7e28a80e46c44e31e77425691034a2868c4fe",
+    "newsletter-art-request/references/templates.md": "56ff634ca5e4322a93ef6dad022833ae22fb5b27e2670465cc60145643e69fa8",
+    "newsletter-headlines/SKILL.md": "1cd06a61ecc58d1bf6651099e4329e86035a83f246ac48bb714b6f98a8437519",
+    "newsletter-headlines/references/archive.md": "311f7c1a846be701d65e17295ccf12bc0cef8ed054e2425cd9e586d8f9fea3c9",
+    "newsletter-headlines/references/patterns.md": "542ca185979f1afee8807adda123a812ed3b529e1776f140ce54f499bb221329",
+    "posthog-newsletter-reviewer/SKILL.md": "9b151f9f4a6bb764f3ca2eb465db6b16e3b958f0a4b049d66f30108788a034a7",
+    "posthog-newsletter-reviewer/assets/review-template.md": "55af5c6abb554c3e4867eccf3b7a35605ca95d06cb24f9379579dcf39883b4fa",
+    "posthog-newsletter-reviewer/references/house-style.md": "af257ea10c32b013e1ed77cb37b1a1e28629d767601316506cfa32f35f755b31",
+    "research-newsletter/SKILL.md": "ba9ccabe8a3307a93617d2745575b634f44085bcef4b4c2f9d8b48cfaef0d1ed",
+    "research-newsletter/agents/openai.yaml": "e285c90b90aac242fcf637e208ebf7ae6be2282fddd6aabf782b3a84b74113c4",
+    "research-newsletter/references/linkup.md": "7c2a93d04ecd4fa473a995abd116660d1e0f6dc46dffa8cc340b3670b502d798",
+    "research-newsletter/references/workflow.md": "cd422e82b71cb0c2307a925cb4cfcd0b03611ff5d93f674903550464f9b67791",
+    "slack-emoji-poll/SKILL.md": "5f527ec7d4705c1de51231a469579659492cd63797f9f307f661ed7c0939a872"
+  },
+  "skills": {
+    "build-mode-crosspost": {
+      "backingPluginId": "plugin_016yeoyWaqRoq1C2JvnrBcpT",
       "files": [
-        {
-          "path": "SKILL.md",
-          "bytes": 9379,
-          "sha256": "978481ce584b1db74796bb83e50a67a856be6105d209046cf95fb81a33838a63"
-        },
-        {
-          "path": "references/x-recipes.md",
-          "bytes": 11875,
-          "sha256": "bdcc94b17e6f4ab3d8643cbf8b9387ce3542102bd6c283f07c8cbc71f3bf7aa9"
-        }
-      ]
+        "build-mode-crosspost/SKILL.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:40:43.832175Z"
     },
-    {
-      "name": "further-reading-finder",
-      "skillId": "skill_01R9kVMBezf78k95EiUjPSrk",
-      "updatedAt": "2026-08-06T00:11:08.524348Z",
-      "description": "Scan Hacker News, Reddit, the PostHog blog, developer X/Twitter, and Slack (#dev-ai, #devel-random, #industry-news) to find candidate links for the \"Further Reading\" section of PostHog's Product for Engineers newsletter. Returns an annotated shortlist of ~10-15 links that teach a technique, surface a genuinely useful tool/project, or make a sharp argument for a product-engineer audience \u2014 and hard-rejects funding rounds, launches, and company PR. Use this whenever Jina is gathering further-reading links, doing newsletter link curation, looking for \"good articles/projects/tweets\" to include, or asks what's worth linking since the last issue \u2014 even if she doesn't say \"further reading\" by name.",
+    "dev-trends": {
+      "backingPluginId": "plugin_01L8MeWUeCyb2EwMiDtpxr8k",
       "files": [
-        {
-          "path": "SKILL.md",
-          "bytes": 7012,
-          "sha256": "714588301c9f4f0ee14e6223f1f313866ca9a805bf9c74db93924d9a09891ec2"
-        },
-        {
-          "path": "references/sources.md",
-          "bytes": 7683,
-          "sha256": "a505d4387e35a0c5c7a6c8f1bfa6c81d26bdb9442483b88f11275c88554b291a"
-        }
-      ]
+        "dev-trends/SKILL.md",
+        "dev-trends/references/x-recipes.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:41:10.796182Z"
     },
-    {
-      "name": "my-sprint-update",
-      "skillId": "skill_01G1Si8tCwFZeZXepcWj6t6U",
-      "updatedAt": "2026-08-20T22:27:23.552006Z",
-      "description": "Draft the user's weekly editorial sprint comment for PostHog/company-internal \u2014 close out the ending sprint (retro with evidence-based checkmarks) and plan the week ahead. Use this whenever the user mentions the editorial sprint, their sprint comment or sprint update, Friday sprint prep, closing out the sprint/week, drafting their retro, or prepping for the Monday editorial meeting \u2014 even if they just say \"do my sprint prep\" or \"help me with my sprint\". Produces a draft for review; never posts to GitHub without explicit approval.",
+    "further-reading-finder": {
+      "backingPluginId": "plugin_0187etzfrVr5U2UvCWwXh4fw",
       "files": [
-        {
-          "path": "SKILL.md",
-          "bytes": 10112,
-          "sha256": "2a44ba70ef554bc93aa607bd6759208d911194e70289f54393f30c492248365c"
-        }
-      ]
+        "further-reading-finder/SKILL.md",
+        "further-reading-finder/references/sources.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:41:08.484195Z"
     },
-    {
-      "name": "newsletter-art-request",
-      "skillId": "skill_018iNeZFcUmh4voULFzcEQqx",
-      "updatedAt": "2026-08-15T01:16:35.742668Z",
-      "description": "File a PostHog art request issue in PostHog/marketing for a build mode newsletter, either a hero image or a polish pass on infographics, and upload any Claude-generated SVGs into the Newsletter Graphics Figma file. Use this whenever Jina needs artwork, a hero image, a header image, a polish pass, infographic cleanup, or design help for a newsletter or blog post, including when she says \"file an art request\", \"ask design for a hero image\", \"I need art for this issue\", \"get the graphics polished\", \"submit this to the art board\", or just links a newsletter Google Doc and says she needs images. Also use it when she wants to add newsletter SVGs to Figma, even if no GitHub issue is involved.",
+    "gdoc-to-blog-pr": {
+      "backingPluginId": "plugin_017VoRixsxYQzuybzeeojjbH",
       "files": [
-        {
-          "path": "SKILL.md",
-          "bytes": 9328,
-          "sha256": "0f5620cfabdb8af45b6230bc746d51b4f9303aa6afee2e6c7dc0ef5c194f2014"
-        },
-        {
-          "path": "references/examples.md",
-          "bytes": 5811,
-          "sha256": "1e710288247b6eb9d9b327720d7b9ca013f87710953f6d340eb28e604b1f7127"
-        },
-        {
-          "path": "references/figma.md",
-          "bytes": 5473,
-          "sha256": "cbc1ad29cddfb7be56e971f3c04e4a55b64e697f7e19ac589539b140c0918e4e"
-        },
-        {
-          "path": "references/svg-discovery.md",
-          "bytes": 5189,
-          "sha256": "7caee70437fd69b73907ede24cb7e28a80e46c44e31e77425691034a2868c4fe"
-        },
-        {
-          "path": "references/templates.md",
-          "bytes": 5683,
-          "sha256": "56ff634ca5e4322a93ef6dad022833ae22fb5b27e2670465cc60145643e69fa8"
-        }
-      ]
+        "gdoc-to-blog-pr/SKILL.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:41:05.087058Z"
     },
-    {
-      "name": "newsletter-headlines",
-      "skillId": "skill_01Pv9Hs4SMGfsGh59NVLRWcR",
-      "updatedAt": "2026-08-12T22:22:47.644218Z",
-      "description": "Generate title and subtitle options for an issue of PostHog's newsletter (build mode, formerly Product for Engineers), calibrated against every past issue and PostHog's own title guidelines. Use this whenever someone is naming, retitling, or workshopping a newsletter issue \u2014 including when they paste a few headline ideas and ask \"which of these is best\", \"any better options?\", \"help me title this\", \"what should I call this issue\", or share a draft or pitch and ask for a headline, subject line, or subtitle. Also use when they're unhappy with a working title, want to A/B a subject line for the email, or want to check a title against what's already been published. Trigger on this even if they don't say the word \"newsletter\" \u2014 if the piece is for PostHog's newsletter or blog and the ask is about the title, use this skill.",
+    "my-sprint-update": {
+      "backingPluginId": "plugin_016LibEJVvqrcdCuWxQR9411",
       "files": [
-        {
-          "path": "SKILL.md",
-          "bytes": 7994,
-          "sha256": "3ce442ef3389c5a4e25fe72bf4169cbbacf7a9410081d5baa45011ceae8424d7"
-        },
-        {
-          "path": "references/archive.md",
-          "bytes": 10660,
-          "sha256": "311f7c1a846be701d65e17295ccf12bc0cef8ed054e2425cd9e586d8f9fea3c9"
-        },
-        {
-          "path": "references/patterns.md",
-          "bytes": 9250,
-          "sha256": "542ca185979f1afee8807adda123a812ed3b529e1776f140ce54f499bb221329"
-        }
-      ]
+        "my-sprint-update/SKILL.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:40:47.643547Z"
     },
-    {
-      "name": "posthog-newsletter-reviewer",
-      "skillId": "skill_01CBJkaxDHJtbBiPnPLgkGjT",
-      "updatedAt": "2026-08-20T22:35:07.902875Z",
-      "description": "Review a draft of PostHog's \"Product for Engineers\" newsletter the way the team's own editors do, and write the feedback to a file. Use this whenever Jina (or anyone) wants an editorial pass, review, critique, or feedback on a newsletter draft \u2014 whether it's a Google Doc, a pasted draft, or a file \u2014 and even if they just say \"can you look over this issue\", \"does this land\", \"give me notes\", \"edit this\", or \"what would Andy/Ian flag here\". Supports two lenses: CONTENT mode (structure, hook, and whether claims are specific enough) and STYLE mode (PostHog voice and line-level edits). Output is a review file with a prioritized summary memo followed by an in-order inline comment list. Reviews the written body of the issue only \u2014 it never sources, suggests, or evaluates \"Further Reading\" links. Do NOT use this for writing a newsletter from scratch, or for finding or curating Further Reading links (that's the posthog-reading-finder skill).",
+    "newsletter-art-request": {
+      "backingPluginId": "plugin_01656KAr3Y5eLqZQkar9CM1Z",
       "files": [
-        {
-          "path": "SKILL.md",
-          "bytes": 7617,
-          "sha256": "281fdc11e9987b8d079f2e7f25217750b33bf5640dbf7c22c32adcb22db75b3f"
-        },
-        {
-          "path": "assets/review-template.md",
-          "bytes": 1631,
-          "sha256": "55af5c6abb554c3e4867eccf3b7a35605ca95d06cb24f9379579dcf39883b4fa"
-        },
-        {
-          "path": "references/house-style.md",
-          "bytes": 9498,
-          "sha256": "af257ea10c32b013e1ed77cb37b1a1e28629d767601316506cfa32f35f755b31"
-        }
-      ]
+        "newsletter-art-request/SKILL.md",
+        "newsletter-art-request/references/examples.md",
+        "newsletter-art-request/references/figma.md",
+        "newsletter-art-request/references/svg-discovery.md",
+        "newsletter-art-request/references/templates.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:41:14.232971Z"
+    },
+    "newsletter-headlines": {
+      "backingPluginId": "plugin_01MYxouXEBRfZ5Ve9L34fBWy",
+      "files": [
+        "newsletter-headlines/SKILL.md",
+        "newsletter-headlines/references/archive.md",
+        "newsletter-headlines/references/patterns.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:41:01.595831Z"
+    },
+    "posthog-newsletter-reviewer": {
+      "backingPluginId": "plugin_01ExzAhqgsAVwvUb3bsVVgSn",
+      "files": [
+        "posthog-newsletter-reviewer/SKILL.md",
+        "posthog-newsletter-reviewer/assets/review-template.md",
+        "posthog-newsletter-reviewer/references/house-style.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:40:58.575573Z"
+    },
+    "research-newsletter": {
+      "backingPluginId": "plugin_01BmLX5mt4pVxs2k7D7QeZyq",
+      "files": [
+        "research-newsletter/SKILL.md",
+        "research-newsletter/agents/openai.yaml",
+        "research-newsletter/references/linkup.md",
+        "research-newsletter/references/workflow.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:40:52.142271Z"
+    },
+    "slack-emoji-poll": {
+      "backingPluginId": "plugin_012oGMhsF8SQNX9LJQieLwtX",
+      "files": [
+        "slack-emoji-poll/SKILL.md"
+      ],
+      "source": "plugin",
+      "updatedAt": "2026-10-27T19:40:49.950339Z"
     }
-  ]
+  },
+  "syncedManifestLastUpdated": 1794372491253
 }

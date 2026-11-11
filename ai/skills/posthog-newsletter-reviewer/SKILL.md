@@ -1,19 +1,6 @@
 ---
 name: posthog-newsletter-reviewer
-description: >-
-  Review a draft of PostHog's "Product for Engineers" newsletter the way the
-  team's own editors do, and write the feedback to a file. Use this whenever
-  Jina (or anyone) wants an editorial pass, review, critique, or feedback on a
-  newsletter draft — whether it's a Google Doc, a pasted draft, or a file — and
-  even if they just say "can you look over this issue", "does this land", "give
-  me notes", "edit this", or "what would Andy/Ian flag here". Supports two
-  lenses: CONTENT mode (structure, hook, and whether claims are specific enough)
-  and STYLE mode (PostHog voice and line-level edits). Output is a review file
-  with a prioritized summary memo followed by an in-order inline comment list.
-  Reviews the written body of the issue only — it never sources, suggests, or
-  evaluates "Further Reading" links. Do NOT use this for writing a newsletter
-  from scratch, or for finding or curating Further Reading links (that's the
-  posthog-reading-finder skill).
+description: 'Review a draft of PostHog''s "Product for Engineers" newsletter the way the team''s own editors do, and write the feedback to a file. Use this whenever Jina (or anyone) wants an editorial pass, review, critique, or feedback on a newsletter draft — whether it''s a Google Doc, a pasted draft, or a file — and even if they just say "can you look over this issue", "does this land", "give me notes", "edit this", or "what would Andy/Ian flag here". Supports two lenses: CONTENT mode (structure, hook, and whether claims are specific enough) and STYLE mode (PostHog voice and line-level edits). Output is a review file with a prioritized summary memo followed by an in-order inline comment list. Reviews the written body of the issue only — it never sources, suggests, or evaluates "Further Reading" links. Do NOT use this for writing a newsletter from scratch, or for finding or curating Further Reading links (that''s the posthog-reading-finder skill).'
 metadata:
   cowork: true
 ---

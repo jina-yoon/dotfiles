@@ -1,16 +1,6 @@
 ---
 name: dev-trends
-description: >-
-  Read developer X/Twitter through Jina's own logged-in Chrome session and report
-  what's actually moving in dev right now — the arguments people are having, the
-  tools they're switching to, the things they've stopped talking about. Uses the
-  Claude in Chrome browser tools against a curated List and a set of search
-  queries, then cross-checks against Hacker News and GitHub Trending. Use whenever
-  Jina asks what's trending, what she's missed, what dev X is talking about, what
-  the discourse is on some topic, or wants a pulse-check on a specific tool or
-  debate — including "what's new in AI tooling this week" or "am I behind on X?".
-  This is trend awareness, not link curation: if she's assembling Further Reading
-  links for the newsletter, use further-reading-finder instead.
+description: 'Read developer X/Twitter through Jina''s own logged-in Chrome session and report what''s actually moving in dev right now — the arguments people are having, the tools they''re switching to, the things they''ve stopped talking about. Uses the Claude in Chrome browser tools against a curated List and a set of search queries, then cross-checks against Hacker News and GitHub Trending. Use whenever Jina asks what''s trending, what she''s missed, what dev X is talking about, what the discourse is on some topic, or wants a pulse-check on a specific tool or debate — including "what''s new in AI tooling this week" or "am I behind on X?". This is trend awareness, not link curation: if she''s assembling Further Reading links for the newsletter, use further-reading-finder instead.'
 metadata:
   cowork: true
 ---
